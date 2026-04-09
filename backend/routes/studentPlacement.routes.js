@@ -10,6 +10,8 @@ router.use(isAdmin);
 // Bulk Import/Export
 router.get('/export-template', controller.exportTemplate);
 router.post('/import', controller.uploadMiddleware, controller.importStudents);
+router.get('/export-placement-template', controller.exportPlacementTemplate);
+router.post('/import-placements', controller.uploadMiddleware, controller.importPlacementDetails);
 router.post('/delete-many', controller.deleteManyStudents);
 
 router.get('/', controller.getAllStudents);

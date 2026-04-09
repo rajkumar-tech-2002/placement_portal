@@ -208,23 +208,42 @@ const StudentDetails = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            toast.success('Template exported successfully');
+            toast.success('Student template exported');
         } catch (error) {
             toast.error('Export failed');
         }
     };
 
-    const handleImport = async (e) => {
+    const handlePlacementExport = async () => {
+        try {
+            const response = await api.get('/student-placements/export-placement-template', {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'placement_import_template.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success('Placement template exported');
+        } catch (error) {
+            toast.error('Export failed');
+        }
+    };
+
+    const handleImport = async (e, type = 'student') => {
         const file = e.target.files[0];
         if (!file) return;
 
         const formData = new FormData();
         formData.append('file', file);
 
-        const loadingToast = toast.loading('Importing students...');
+        const loadingToast = toast.loading(`Importing ${type} data...`);
+        const endpoint = type === 'student' ? '/student-placements/import' : '/student-placements/import-placements';
 
         try {
-            const response = await api.post('/student-placements/import', formData, {
+            const response = await api.post(endpoint, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -294,25 +313,58 @@ const StudentDetails = () => {
                             Delete {selectedIds.length}
                         </button>
                     )}
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
-                        >
-                            <Download className="w-4 h-4 text-primary-500" />
-                            Template
-                        </button>
-                        <div className="relative">
-                            <input 
-                                type="file" 
-                                accept=".csv" 
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                onChange={handleImport}
-                            />
-                            <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
-                                <Upload className="w-4 h-4 text-primary-500" />
-                                Import
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Student Master</span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={handleExport}
+                                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+                                title="Download Student Template"
+                            >
+                                <Download className="w-3.5 h-3.5 text-primary-500" />
+                                Template
                             </button>
+                            <div className="relative">
+                                <input 
+                                    type="file" 
+                                    accept=".csv" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={(e) => handleImport(e, 'student')}
+                                />
+                                <button className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
+                                    <Upload className="w-3.5 h-3.5 text-primary-500" />
+                                    Import
+                                </button>
+                            </div>
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Placement Data</span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={handlePlacementExport}
+                                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+                                title="Download Placement Template"
+                            >
+                                <Download className="w-3.5 h-3.5 text-emerald-500" />
+                                Template
+                            </button>
+                            <div className="relative">
+                                <input 
+                                    type="file" 
+                                    accept=".csv" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={(e) => handleImport(e, 'placement')}
+                                />
+                                <button className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
+                                    <Upload className="w-3.5 h-3.5 text-emerald-500" />
+                                    Import
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <button
                         onClick={() => {
                             setFormData({});
@@ -320,7 +372,7 @@ const StudentDetails = () => {
                             setIsModalOpen(true);
                             setActiveTab('basic');
                         }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white hover:bg-primary-700 rounded-xl transition-all shadow-lg shadow-primary-600/20 font-semibold text-sm"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white hover:bg-primary-700 rounded-xl transition-all shadow-lg shadow-primary-600/20 font-semibold text-sm self-end mb-1"
                     >
                         <Plus className="w-4 h-4" />
                         Add Student
@@ -382,11 +434,14 @@ const StudentDetails = () => {
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('willing_domain')}>
                                     <div className="flex items-center">Willing Domain {renderSortIcon('willing_domain')}</div>
                                 </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('placed')}>
-                                    <div className="flex items-center">Placement {renderSortIcon('placed')}</div>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('placement_status')}>
+                                    <div className="flex items-center">Placement Status {renderSortIcon('placement_status')}</div>
                                 </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('salary')}>
-                                    <div className="flex items-center">Salary {renderSortIcon('salary')}</div>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('highest_salary')}>
+                                    <div className="flex items-center">Highest Package {renderSortIcon('highest_salary')}</div>
+                                </th>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Highest Company
                                 </th>
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
@@ -438,20 +493,32 @@ const StudentDetails = () => {
                                         <span className="text-sm font-semibold text-slate-900 dark:text-white">{student.willing_domain}</span>
                                     </td>
                                     <td className="p-4 align-middle">
-                                        {student.placed === 'Yes' ? (
+                                        {student.placement_status === 'Placed' ? (
                                             <span className="px-2.5 py-1 text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 rounded-full uppercase tracking-wider border border-green-200 dark:border-green-800/50">
                                                 Placed
                                             </span>
+                                        ) : student.placement_status === 'Unplaced' ? (
+                                            <span className="px-2.5 py-1 text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded-full uppercase tracking-wider border border-amber-200 dark:border-amber-800/50">
+                                                Unplaced
+                                            </span>
                                         ) : (
                                             <span className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full uppercase tracking-wider border border-slate-200 dark:border-slate-700">
-                                                Unplaced
+                                                NA
                                             </span>
                                         )}
                                     </td>
                                     <td className="p-4 align-middle">
-                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                            {student.salary ? `₹${student.salary} LPA` : '-'}
+                                        <span className="text-sm font-bold text-primary-600 dark:text-primary-400">
+                                            {student.highest_salary ? `₹${student.highest_salary} LPA` : '-'}
                                         </span>
+                                    </td>
+                                    <td className="p-4 align-middle">
+                                        <div className="flex items-center gap-2">
+                                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                            <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                {student.highest_salary_company || '-'}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -537,16 +604,6 @@ const StudentDetails = () => {
                                         {renderInput('Willingness', 'willing', 'text', ['willing', 'Not Willing'])}
                                         {renderInput('Willing Domain', 'willing_domain')}
                                         {renderInput('Eligibility', 'eligibility', 'text', ['Yes', 'No'])}
-                                        <div className="col-span-full py-4 border-t border-slate-100 dark:border-slate-800 mt-4">
-                                            <h3 className="text-sm font-bold text-primary-600 uppercase tracking-widest mb-6">Placement Status</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {renderInput('Company Name', 'company_name')}
-                                                {renderInput('Salary Range', 'salary_range')}
-                                                {renderInput('Annual Salary (LPA)', 'salary', 'number')}
-                                                {renderInput('Placed Status', 'placed', 'text', ['Yes', 'No'])}
-                                                {renderInput('Placed Domain', 'domain')}
-                                            </div>
-                                        </div>
                                     </div>
                                 )}
 

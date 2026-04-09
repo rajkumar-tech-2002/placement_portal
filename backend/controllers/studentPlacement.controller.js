@@ -88,7 +88,7 @@ export const deleteManyStudents = async (req, res) => {
 
 export const exportTemplate = async (req, res) => {
     try {
-        const columns = await StudentPlacement.getTableColumns();
+        const columns = await StudentPlacement.getTemplateColumns();
         const json2csvParser = new Parser({ fields: columns });
         const csv = json2csvParser.parse([]); // Empty data, just headers
         
@@ -123,6 +123,64 @@ export const importStudents = async (req, res) => {
                     continue;
                 }
                 const result = await StudentPlacement.upsert(record);
+                if (result.action === 'inserted') inserted++;
+                else updated++;
+            } catch (err) {
+                errors.push(`Error with reg_no ${record.reg_no}: ${err.message}`);
+            }
+        }
+
+        res.json({
+            message: 'Import completed',
+            summary: {
+                total: records.length,
+                inserted,
+                updated,
+                failed: errors.length
+            },
+            errors: errors.length > 0 ? errors : undefined
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+export const exportPlacementTemplate = async (req, res) => {
+    try {
+        const columns = await StudentPlacement.getPlacementTableColumns();
+        const json2csvParser = new Parser({ fields: columns });
+        const csv = json2csvParser.parse([]); // Empty data, just headers
+        
+        res.header('Content-Type', 'text/csv');
+        res.attachment('placement_import_template.csv');
+        return res.send(csv);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const importPlacementDetails = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const records = parse(req.file.buffer, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true
+        });
+
+        let inserted = 0;
+        let updated = 0;
+        let errors = [];
+
+        for (const record of records) {
+            try {
+                if (!record.reg_no || !record.company_name) {
+                    errors.push(`Missing reg_no or company_name for a record: ${JSON.stringify(record)}`);
+                    continue;
+                }
+                const result = await StudentPlacement.upsertPlacementDetail(record);
                 if (result.action === 'inserted') inserted++;
                 else updated++;
             } catch (err) {

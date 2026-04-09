@@ -15,6 +15,7 @@ import WillingStudents from '../pages/Admin/WillingStudents';
 import CoordinatorDashboard from '../pages/Coordinator/CoordinatorDashboard';
 import DriveExecution from '../pages/Coordinator/DriveExecution';
 import DriveAttendance from '../pages/Coordinator/DriveAttendance';
+import LeetCodeDetails from '../pages/Admin/LeetCodeDetails';
 
 const AppRoutes = () => {
     return (
@@ -28,17 +29,19 @@ const AppRoutes = () => {
                 <Route path="companies" element={<ManageCompanies />} />
                 <Route path="companies/:id/eligible-students" element={<EligibleStudents />} />
                 <Route path="student-details" element={<StudentDetails />} />
+                <Route path="leetcode-details" element={<LeetCodeDetails />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="create-user" element={<CreateUser />} />
                 <Route path="companies/:id/willing-students" element={<WillingStudents />} />
             </Route>
-
+ 
             {/* Coordinator Routes */}
             <Route path="/coordinator" element={<ProtectedRoute allowedRoles={['COORDINATOR', 'ADMIN']} />}>
                 <Route index element={<Navigate to="/coordinator/dashboard" replace />} />
                 <Route path="dashboard" element={<CoordinatorDashboard />} />
                 <Route path="drives" element={<DriveExecution />} />
                 <Route path="drives/:id/attendance" element={<DriveAttendance />} />
+                <Route path="leetcode-details" element={<LeetCodeDetails />} />
             </Route>
 
             <Route path="/" element={<Navigate to="/login" replace />} />

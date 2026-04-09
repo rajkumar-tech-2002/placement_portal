@@ -4,7 +4,8 @@ import {
     getWillingReport, 
     getPlacedReport, 
     getCompanyWiseReport, 
-    getPackageDistReport 
+    getPackageDistReport,
+    getWillingFilters
 } from '../services/report.service';
 import { 
     Users, 
@@ -23,8 +24,13 @@ import {
     Mail,
     Phone,
     Trophy,
-    Target
+    Target,
+    MapPin,
+    GraduationCap,
+    Grid,
+    Building
 } from 'lucide-react';
+
 import { 
     Chart as ChartJS, 
     CategoryScale, 
@@ -41,6 +47,8 @@ import {
 import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
 import toast from 'react-hot-toast';
 import { formatDate } from '../utils/dateFormatter';
+import Pagination from '../components/common/Pagination';
+import CampusFilter from '../components/common/CampusFilter';
 
 ChartJS.register(
     CategoryScale,
@@ -64,6 +72,73 @@ const Reports = () => {
     const [companyData, setCompanyData] = useState([]);
     const [packageData, setPackageData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Willing Table State
+    const [willingPage, setWillingPage] = useState(1);
+    const [willingTotalPages, setWillingTotalPages] = useState(0);
+    const [willingTotal, setWillingTotal] = useState(0);
+
+    const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const [selectedDept, setSelectedDept] = useState('');
+    const [selectedDomain, setSelectedDomain] = useState('');
+    const [filterOptions, setFilterOptions] = useState({ departments: [], domains: [], companies: [] });
+
+    // Placements Table State
+    const [placedPage, setPlacedPage] = useState(1);
+    const [placedTotalPages, setPlacedTotalPages] = useState(0);
+    const [placedTotal, setPlacedTotal] = useState(0);
+    const [selectedPlacedCampuses, setSelectedPlacedCampuses] = useState([]);
+    const [selectedPlacedDept, setSelectedPlacedDept] = useState('');
+    const [selectedPlacedCompany, setSelectedPlacedCompany] = useState('');
+
+
+    const fetchFilters = async () => {
+        try {
+            const data = await getWillingFilters();
+            setFilterOptions(data.filters);
+        } catch (error) {
+            console.error('Failed to fetch filters:', error);
+        }
+    };
+
+    const fetchWilling = async () => {
+        try {
+            const data = await getWillingReport({
+                page: willingPage,
+                limit: 10,
+                search: debouncedSearch,
+                campus: selectedCampuses,
+                department: selectedDept,
+                domain: selectedDomain
+            });
+            setWillingData(data.report);
+            setWillingTotal(data.total);
+            setWillingTotalPages(data.totalPages);
+
+        } catch (error) {
+            toast.error('Failed to fetch willing students');
+        }
+    };
+
+    const fetchPlaced = async () => {
+        try {
+            const data = await getPlacedReport({
+                page: placedPage,
+                limit: 10,
+                search: debouncedSearch,
+                campus: selectedPlacedCampuses,
+                department: selectedPlacedDept,
+                company: selectedPlacedCompany
+            });
+            setPlacedData(data.report);
+            setPlacedTotal(data.total);
+            setPlacedTotalPages(data.totalPages);
+        } catch (error) {
+            toast.error('Failed to fetch placements');
+        }
+    };
+
 
     const fetchData = async () => {
         setLoading(true);
@@ -91,7 +166,27 @@ const Reports = () => {
 
     useEffect(() => {
         fetchData();
+        fetchFilters();
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setWillingPage(1);
+            setPlacedPage(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+
+    useEffect(() => {
+        if (activeTab === 'willing') {
+            fetchWilling();
+        } else if (activeTab === 'placed') {
+            fetchPlaced();
+        }
+    }, [activeTab, willingPage, placedPage, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany]);
+
 
     const chartOptions = {
         responsive: true,
@@ -134,21 +229,15 @@ const Reports = () => {
         </div>
     );
 
-    const filteredWilling = willingData.filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        s.reg_no.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredWilling = willingData;
 
-    const filteredPlaced = placedData.filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        s.company_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredPlaced = placedData;
 
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-    );
+    // if (loading) return (
+    //     <div className="flex items-center justify-center min-h-[400px]">
+    //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    //     </div>
+    // );
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -236,100 +325,267 @@ const Reports = () => {
 
             {/* Willing Students Tab */}
             {activeTab === 'willing' && (
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in slide-in-from-bottom-5 duration-500">
-                    <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                        <div className="relative w-full max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                    {/* Filters Area */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="md:col-span-1">
+                            <CampusFilter 
+                                selectedCampuses={selectedCampuses} 
+                                onChange={setSelectedCampuses} 
+                            />
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3" />
+                                Department
+                            </label>
+                            <select
+                                value={selectedDept}
+                                onChange={(e) => { setSelectedDept(e.target.value); setWillingPage(1); }}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
+                            >
+                                <option value="">All Departments</option>
+                                {filterOptions.departments.map(dept => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <Grid className="w-3 h-3" />
+                                Willing Domain
+                            </label>
+                            <select
+                                value={selectedDomain}
+                                onChange={(e) => { setSelectedDomain(e.target.value); setWillingPage(1); }}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
+                            >
+                                <option value="">All Domains</option>
+                                {filterOptions.domains.map(domain => (
+                                    <option key={domain} value={domain}>{domain}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <Search className="w-3 h-3" />
+                                Search
+                            </label>
                             <input 
                                 type="text" 
-                                placeholder="Search by name or reg no..." 
-                                className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-primary-500/40 text-sm font-semibold text-slate-900 dark:text-white outline-none transition-all"
+                                placeholder="Name or Reg No..." 
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                                <tr>
-                                    <th className="px-8 py-5">Register No</th>
-                                    <th className="px-8 py-5">Student Name</th>
-                                    <th className="px-8 py-5">Status</th>
-                                    <th className="px-8 py-5">Interested Domain</th>
-                                    <th className="px-8 py-5 text-right">Added On</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                {filteredWilling.map((student) => (
-                                    <tr key={student.reg_no} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
-                                        <td className="px-8 py-5 font-mono text-sm font-bold text-primary-600">{student.reg_no}</td>
-                                        <td className="px-8 py-5 font-bold text-slate-900 dark:text-white">{student.name}</td>
-                                        <td className="px-8 py-5">
-                                            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 font-bold rounded-lg text-xs">Willing</span>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-bold rounded-lg text-xs">{student.willing_domain || 'Not Specified'}</span>
-                                        </td>
-                                        <td className="px-8 py-5 text-right text-slate-400 text-sm">
-                                            {formatDate(student.created_at)}
-                                        </td>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-950/30">
+                            <div className="flex items-center gap-3">
+                                <span className="px-4 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-full text-xs font-black uppercase tracking-wider">
+                                    {willingTotal} Students Found
+                                </span>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
+                                    <tr>
+                                        <th className="px-8 py-5">Register No</th>
+                                        <th className="px-8 py-5">Student Name</th>
+                                        <th className="px-8 py-5">Department</th>
+                                        <th className="px-8 py-5">Campus</th>
+                                        <th className="px-8 py-5">Status</th>
+                                        <th className="px-8 py-5">Interested Domain</th>
+                                        <th className="px-8 py-5 text-right">Added On</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                    {willingData.length > 0 ? willingData.map((student) => (
+                                        <tr key={student.reg_no} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
+                                            <td className="px-8 py-5 font-mono text-sm font-bold text-primary-600">{student.reg_no}</td>
+                                            <td className="px-8 py-5 font-bold text-slate-900 dark:text-white">{student.name}</td>
+                                            <td className="px-8 py-5 font-semibold text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap">{student.department}</td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                                                    student.cambus_details === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                                                    student.cambus_details === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                                                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                                                }`}>
+                                                    {student.cambus_details || 'N/A'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 font-bold rounded-lg text-xs border border-amber-100 dark:border-amber-800/50">Willing</span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-bold rounded-lg text-xs border border-blue-100 dark:border-blue-800/50">{student.willing_domain || 'Not Specified'}</span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right text-slate-400 text-sm">
+                                                {formatDate(student.created_at)}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="7" className="p-20 text-center">
+                                                <div className="flex flex-col items-center justify-center text-slate-400">
+                                                    <Filter className="w-12 h-12 mb-4 opacity-20" />
+                                                    <p className="text-lg font-medium opacity-50">No willing students found matching your criteria</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination 
+                            currentPage={willingPage} 
+                            totalPages={willingTotalPages} 
+                            onPageChange={(p) => setWillingPage(p)} 
+                        />
                     </div>
                 </div>
             )}
 
+
             {/* Placements Tab */}
             {activeTab === 'placed' && (
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in slide-in-from-bottom-5 duration-500">
-                    <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                        <div className="relative w-full max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                    {/* Filters Area */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="md:col-span-1">
+                            <CampusFilter 
+                                selectedCampuses={selectedPlacedCampuses} 
+                                onChange={setSelectedPlacedCampuses} 
+                            />
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3" />
+                                Department
+                            </label>
+                            <select
+                                value={selectedPlacedDept}
+                                onChange={(e) => { setSelectedPlacedDept(e.target.value); setPlacedPage(1); }}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
+                            >
+                                <option value="">All Departments</option>
+                                {filterOptions.departments.map(dept => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <Building className="w-3 h-3" />
+                                Select Company
+                            </label>
+                            <select
+                                value={selectedPlacedCompany}
+                                onChange={(e) => { setSelectedPlacedCompany(e.target.value); setPlacedPage(1); }}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
+                            >
+                                <option value="">All Companies</option>
+                                {filterOptions.companies.map(company => (
+                                    <option key={company} value={company}>{company}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
+                                <Search className="w-3 h-3" />
+                                Search
+                            </label>
                             <input 
                                 type="text" 
-                                placeholder="Search placement records..." 
-                                className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-primary-500/40 text-sm font-semibold text-slate-900 dark:text-white outline-none transition-all"
+                                placeholder="Student or Company..." 
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                                <tr>
-                                    <th className="px-8 py-5">Photo</th>
-                                    <th className="px-8 py-5">Student</th>
-                                    <th className="px-8 py-5">Company</th>
-                                    <th className="px-8 py-5">CTC</th>
-                                    <th className="px-8 py-5 text-right">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                {filteredPlaced.map((student) => (
-                                    <tr key={student.reg_no} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
-                                        <td className="px-8 py-5">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400">
-                                                {student.name.charAt(0)}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className="font-bold text-slate-900 dark:text-white">{student.name}</div>
-                                            <div className="text-[10px] text-slate-400">{student.reg_no}</div>
-                                        </td>
-                                        <td className="px-8 py-5 font-bold text-primary-600">{student.company_name}</td>
-                                        <td className="px-8 py-5 font-black text-emerald-600">₹{student.salary} LPA</td>
-                                        <td className="px-8 py-5 text-right text-slate-400 text-sm">{formatDate(student.created_at)}</td>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-950/30">
+                            <div className="flex items-center gap-3">
+                                <span className="px-4 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-full text-xs font-black uppercase tracking-wider">
+                                    {placedTotal} Results Found
+                                </span>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
+                                    <tr>
+                                        <th className="px-8 py-5">Photo</th>
+                                        <th className="px-8 py-5">Student</th>
+                                        <th className="px-8 py-5">Department</th>
+                                        <th className="px-8 py-5">Campus</th>
+                                        <th className="px-8 py-5">Company</th>
+                                        <th className="px-8 py-5 text-emerald-600">CTC</th>
+                                        <th className="px-8 py-5 text-right">Date</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                    {placedData.length > 0 ? placedData.map((student) => (
+                                        <tr key={`${student.reg_no}-${student.company_name}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
+                                            <td className="px-8 py-5">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 border-2 border-white dark:border-slate-700 shadow-sm">
+                                                    {student.name.charAt(0)}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="font-bold text-slate-900 dark:text-white mb-0.5">{student.name}</div>
+                                                <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">{student.reg_no}</div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{student.department}</span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                                                    student.cambus_details === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                                                    student.cambus_details === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                                                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                                                }`}>
+                                                    {student.cambus_details || 'N/A'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 font-bold text-primary-600 dark:text-primary-400">{student.company_name}</td>
+                                            <td className="px-8 py-5 font-black text-emerald-600 dark:text-emerald-500 text-sm">₹ {student.salary} LPA</td>
+                                            <td className="px-8 py-5 text-right text-slate-400 text-sm font-medium">{formatDate(student.placement_date)}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="7" className="p-20 text-center">
+                                                <div className="flex flex-col items-center justify-center text-slate-400">
+                                                    <Filter className="w-12 h-12 mb-4 opacity-20" />
+                                                    <p className="text-lg font-medium opacity-50">No placements found matching your criteria</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination 
+                            currentPage={placedPage} 
+                            totalPages={placedTotalPages} 
+                            onPageChange={(p) => setPlacedPage(p)} 
+                        />
                     </div>
                 </div>
             )}
+
 
             {/* Company Metrics Tab */}
             {activeTab === 'companies' && (

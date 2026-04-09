@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Building2, ChevronLeft, Search, GraduationCap, Download, Users, MapPin, Briefcase } from 'lucide-react';
+import { Building2, ChevronLeft, Search, GraduationCap, Download, Users, MapPin, Briefcase, Calendar } from 'lucide-react';
 import * as driveService from '../../services/driveWillingness.service';
 import * as companyService from '../../services/company.service';
 import toast from 'react-hot-toast';
@@ -23,7 +23,7 @@ const WillingStudents = () => {
                     companyService.getCompanyById(id)
                 ]);
                 setStudents(willingUsers);
-                setCompany(companyInfo);
+                setCompany(companyInfo.company);
             } catch (error) {
                 toast.error('Failed to fetch willing students');
                 console.error(error);

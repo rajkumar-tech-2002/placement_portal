@@ -169,11 +169,11 @@ const AdminDashboard = () => {
         { title: 'Avg Package', value: `${parseFloat(data.avg_package || 0).toFixed(1)} LPA`, icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10' },
     ];
 
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-    );
+    // if (loading) return (
+    //     <div className="flex items-center justify-center min-h-[400px]">
+    //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    //     </div>
+    // );
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">

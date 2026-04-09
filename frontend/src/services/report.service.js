@@ -5,15 +5,22 @@ export const getPerformanceReport = async () => {
     return response.data;
 };
 
-export const getWillingReport = async () => {
-    const response = await api.get('/reports/willing');
+export const getWillingReport = async (params) => {
+    const response = await api.get('/reports/willing', { params });
     return response.data;
 };
 
-export const getPlacedReport = async () => {
-    const response = await api.get('/reports/placed');
+export const getWillingFilters = async () => {
+    const response = await api.get('/reports/filters/willing');
     return response.data;
 };
+
+
+export const getPlacedReport = async (params) => {
+    const response = await api.get('/reports/placed', { params });
+    return response.data;
+};
+
 
 export const getCompanyWiseReport = async () => {
     const response = await api.get('/reports/company-wise');

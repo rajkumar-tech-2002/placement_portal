@@ -54,6 +54,19 @@ export const getEligibleCounts = async (req, res) => {
     }
 };
 
+export const getCompanyById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const company = await Company.findById(id);
+        if (!company) {
+            return errorResponse(res, 'Company not found', 404);
+        }
+        return successResponse(res, { company });
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};
+
 export const getEligibleStudents = async (req, res) => {
     const { id } = req.params;
     try {

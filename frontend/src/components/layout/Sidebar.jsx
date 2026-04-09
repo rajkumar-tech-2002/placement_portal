@@ -8,7 +8,8 @@ import {
     UserCircle,
     ClipboardCheck,
     X,
-    UserPlus
+    UserPlus,
+    Code2
 } from 'lucide-react';
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
@@ -18,6 +19,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Companies', path: '/admin/companies', icon: Briefcase },
         { name: 'Student Details', path: '/admin/student-details', icon: Users },
+        { name: 'LeetCode ', path: '/admin/leetcode-details', icon: Code2 },
         { name: 'Reports', path: '/admin/reports', icon: FileBarChart },
         { name: 'Users', path: '/admin/create-user', icon: UserPlus },
     ];
@@ -31,6 +33,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
 
     const coordinatorLinks = [
         { name: 'Dashboard', path: '/coordinator/dashboard', icon: LayoutDashboard },
+        { name: 'LeetCode', path: '/coordinator/leetcode-details', icon: Code2 },
         { name: 'Drive Execution', path: '/coordinator/drives', icon: ClipboardCheck },
     ];
 

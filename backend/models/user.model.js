@@ -29,6 +29,28 @@ class User {
         const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
         return result.affectedRows > 0;
     }
+    
+    static async update(id, userData) {
+        const { name, user_id, role, department, cambus, password } = userData;
+        let query = 'UPDATE users SET name = ?, user_id = ?, role = ?, department = ?, cambus = ?';
+        let params = [name, user_id, role, department, cambus];
+        
+        if (password) {
+            query += ', password = ?';
+            params.push(password);
+        }
+        
+        query += ' WHERE id = ?';
+        params.push(id);
+        
+        const [result] = await pool.query(query, params);
+        return result.affectedRows > 0;
+    }
+
+    static async deleteMany(ids) {
+        const [result] = await pool.query('DELETE FROM users WHERE id IN (?)', [ids]);
+        return result.affectedRows > 0;
+    }
 }
 
 export default User;

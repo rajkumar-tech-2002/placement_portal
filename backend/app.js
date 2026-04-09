@@ -17,6 +17,8 @@ import departmentRoutes from './routes/department.routes.js';
 import staffRoutes from './routes/staff.routes.js';
 import userRoutes from './routes/user.routes.js';
 import driveWillingnessRoutes from './routes/driveWillingness.routes.js';
+import leetcodeDetailsRoutes from './routes/leetcodeDetails.routes.js';
+import roleRoutes from './routes/role.routes.js';
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/drive-willingness', driveWillingnessRoutes);
+app.use('/api/leetcode-details', leetcodeDetailsRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

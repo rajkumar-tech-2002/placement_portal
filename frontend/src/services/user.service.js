@@ -15,8 +15,20 @@ const deleteUser = async (userId) => {
     return response.data;
 };
 
+const updateUser = async (userId, data) => {
+    const response = await api.put(`/users/${userId}`, data);
+    return response.data;
+};
+
+const deleteManyUsers = async (ids) => {
+    const response = await api.post('/users/delete-many', { ids });
+    return response.data;
+};
+
 export default {
     createUser,
     getUsers,
-    deleteUser
+    deleteUser,
+    updateUser,
+    deleteManyUsers
 };

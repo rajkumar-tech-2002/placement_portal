@@ -49,3 +49,38 @@ export const deleteUser = async (req, res) => {
         return errorResponse(res, error.message);
     }
 };
+
+export const updateUser = async (req, res) => {
+    const { id } = req.params;
+    const { name, user_id, role, department, cambus, password } = req.body;
+
+    try {
+        let updateData = { name, user_id, role, department, cambus };
+        
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 8);
+        }
+
+        const updated = await User.update(id, updateData);
+        if (!updated) {
+            return errorResponse(res, 'User not found or no changes made', 404);
+        }
+
+        return successResponse(res, null, 'User updated successfully');
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};
+
+export const deleteManyUsers = async (req, res) => {
+    const { ids } = req.body;
+    try {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return errorResponse(res, 'No IDs provided', 400);
+        }
+        await User.deleteMany(ids);
+        return successResponse(res, null, `${ids.length} users deleted successfully`);
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};

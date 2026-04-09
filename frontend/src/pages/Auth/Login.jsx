@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login as authLogin } from '../../services/auth.service';
+import roleService from '../../services/role.service';
 import { useAuth } from '../../context/AuthContext';
-import { Mail, Lock, AlertCircle, ShieldCheck, ArrowRight, UserPlus, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Mail, 
+        Lock, 
+        AlertCircle, 
+        ShieldCheck, 
+        ArrowRight, 
+        UserPlus, 
+        CheckCircle2, 
+        Eye, 
+        EyeOff,
+        ChevronDown } from 'lucide-react';
 import loginImg from '../../assets/login_img_2.png';
 
 const Login = () => {
@@ -11,13 +21,27 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState('STUDENT');
+    const [selectedRole, setSelectedRole] = useState('ADMIN');
     const [selectedCampus, setSelectedCampus] = useState('NEC'); // NEC, NCT
+    const [availableRoles, setAvailableRoles] = useState(['ADMIN']);
 
     const navigate = useNavigate();
     const { user, login } = useAuth();
 
     useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const res = await roleService.getRoles();
+                const dbRoles = res.data.map(r => r.role.toUpperCase());
+                // Merge with STUDENT and filter uniques
+                const combined = Array.from(new Set([...dbRoles]));
+                setAvailableRoles(combined);
+            } catch (err) {
+                console.error("Failed to fetch roles:", err);
+            }
+        };
+        fetchRoles();
+
         if (user) {
             if (user.role === 'ADMIN') navigate('/admin/dashboard');
             else if (user.role === 'COORDINATOR') navigate('/coordinator/dashboard');
@@ -109,24 +133,23 @@ const Login = () => {
                         </div>
                     )}
 
-                    {/* Role Selection */}
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Select Role</label>
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            {['STUDENT', 'COORDINATOR', 'ADMIN'].map((role) => (
-                                <button
-                                    key={role}
-                                    type="button"
-                                    onClick={() => setSelectedRole(role)}
-                                    className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        selectedRole === role
-                                            ? 'bg-white dark:bg-slate-700 text-primary-600 shadow-sm ring-1 ring-slate-100 dark:ring-slate-600'
-                                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                                    }`}
-                                >
-                                    {role}
-                                </button>
-                            ))}
+                    {/* Role Selection Dropdown */}
+                    <div className="space-y-3 group">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1 group-focus-within:text-primary-600 transition-colors">Select Account Role</label>
+                        <div className="relative">
+                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary-500 transition-colors pointer-events-none z-10" />
+                            <select
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                className="w-full pl-12 pr-10 py-3.5 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-primary-500/40 transition-all outline-none text-sm font-bold text-slate-900 dark:text-white appearance-none cursor-pointer"
+                            >
+                                {availableRoles.map((role) => (
+                                    <option key={role} value={role} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
+                                        {role}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
                         </div>
                     </div>
  
