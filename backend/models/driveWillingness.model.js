@@ -81,7 +81,7 @@ class DriveWillingness {
 
         if (eligibleStudents.length === 0) {
             // If no one is eligible, clear the table for this company (or at least those with Pending status)
-            await pool.query('DELETE FROM drive_willingness WHERE company_id = ? AND status = \'Pending\'', [companyId]);
+            await pool.query('DELETE FROM drive_willingness WHERE company_id = ? AND status = \'Willing\'', [companyId]);
             return;
         }
 
@@ -91,12 +91,12 @@ class DriveWillingness {
         // If a student already marked themselves as willing but is now ineligible, we might want to keep or remove them.
         // For now, let's keep those who have a status but remove 'Pending' ones who are no longer eligible.
         await pool.query(
-            'DELETE FROM drive_willingness WHERE company_id = ? AND status = \'Pending\' AND student_reg_no NOT IN (?)', 
+            'DELETE FROM drive_willingness WHERE company_id = ? AND status = \'Willing\' AND student_reg_no NOT IN (?)', 
             [companyId, eligibleRegNos]
         );
 
         // 2. Prepare bulk insert values
-        const values = eligibleStudents.map(student => [companyId, student.reg_no, 'Pending', student.department, student.cambus_details]);
+        const values = eligibleStudents.map(student => [companyId, student.reg_no, 'Willing', student.department, student.cambus_details]);
         
         // 3. INSERT new eligible students. ON DUPLICATE KEY UPDATE nothing (or just department/campus) to avoid overwriting existing 'Willing'/'Not Willing' status
         const sql = `

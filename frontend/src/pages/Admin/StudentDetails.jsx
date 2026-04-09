@@ -24,6 +24,7 @@ import {
 import toast from 'react-hot-toast';
 import Pagination from '../../components/common/Pagination';
 import CampusFilter from '../../components/common/CampusFilter';
+import Modal from '../../components/common/Modal';
 
 const StudentDetails = () => {
     const [students, setStudents] = useState([]);
@@ -561,10 +562,8 @@ const StudentDetails = () => {
             </div>
 
             {/* Modal Area */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
                         {/* Modal Header */}
                         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <div>
@@ -755,8 +754,7 @@ const StudentDetails = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+            </Modal>
 
             {/* Modal and Toast sections updated ... */}
         </div>

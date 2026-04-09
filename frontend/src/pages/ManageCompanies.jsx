@@ -23,22 +23,37 @@ import {
     Percent,
     History,
     AlertCircle,
-    UserCircle2
+    UserCircle2,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateFormatter';
+import Modal from '../components/common/Modal';
+import Pagination from '../components/common/Pagination';
 
 const ManageCompanies = () => {
     const navigate = useNavigate();
+    // Main State
     const [companies, setCompanies] = useState([]);
-    const [filteredCompanies, setFilteredCompanies] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [loading, setLoading] = useState(true);
     const [eligibleCounts, setEligibleCounts] = useState({});
     const [noBacklogs, setNoBacklogs] = useState(false);
+    
+    // Pagination & Table state
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [sortBy, setSortBy] = useState('drive_date');
+    const [sortOrder, setSortOrder] = useState('DESC');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
     const [formData, setFormData] = useState({
         id: null,
         name: '',
@@ -47,6 +62,7 @@ const ManageCompanies = () => {
         drive_date: '',
         category: '',
         on_off_campus: 'On Campus',
+        cambus_venue: '',
         salary_lpa: '',
         min_10th_percent: '',
         min_12th_percent: '',
@@ -60,9 +76,16 @@ const ManageCompanies = () => {
     const fetchCompanies = async () => {
         try {
             setLoading(true);
-            const data = await companyService.getAllCompanies();
-            setCompanies(data.companies);
-            setFilteredCompanies(data.companies);
+            const response = await companyService.getAllCompanies({
+                page,
+                limit,
+                search: debouncedSearch,
+                sortBy,
+                sortOrder
+            });
+            setCompanies(response.data);
+            setTotal(response.total);
+            setTotalPages(response.totalPages);
             fetchEligibleCounts();
         } catch (err) {
             toast.error('Failed to fetch companies');
@@ -81,15 +104,30 @@ const ManageCompanies = () => {
         }
     };
 
-    useEffect(() => { fetchCompanies(); }, []);
-
     useEffect(() => {
-        const filtered = companies.filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.category.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredCompanies(filtered);
-    }, [searchTerm, companies]);
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setPage(1); // Reset to first page on search
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => { fetchCompanies(); }, [page, limit, debouncedSearch, sortBy, sortOrder]);
+
+    const handleSort = (field) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+        } else {
+            setSortBy(field);
+            setSortOrder('ASC');
+        }
+        setPage(1);
+    };
+
+    const renderSortIcon = (field) => {
+        if (sortBy !== field) return <ChevronsUpDown className="w-4 h-4 ml-1 opacity-30" />;
+        return sortOrder === 'ASC' ? <ChevronUp className="w-4 h-4 ml-1 text-primary-600" /> : <ChevronDown className="w-4 h-4 ml-1 text-primary-600" />;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -149,6 +187,7 @@ const ManageCompanies = () => {
             drive_date: '',
             category: '',
             on_off_campus: 'On Campus',
+            cambus_venue: '',
             salary_lpa: '',
             min_10th_percent: '',
             min_12th_percent: '',
@@ -177,6 +216,7 @@ const ManageCompanies = () => {
             drive_date: driveDate,
             category: company.category || '',
             on_off_campus: company.on_off_campus || 'On Campus',
+            cambus_venue: company.cambus_venue || '',
             salary_lpa: company.salary_lpa || '',
             min_10th_percent: company.min_10th_percent || '',
             min_12th_percent: company.min_12th_percent || '',
@@ -253,130 +293,166 @@ const ManageCompanies = () => {
                 </div>
             </div>
 
-            {/* Companies Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {loading ? (
-                    [1, 2, 3].map(i => (
-                        <div key={i} className="h-80 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 animate-pulse" />
-                    ))
-                ) : filteredCompanies.length > 0 ? (
-                    filteredCompanies.map((company) => (
-                        <div key={company.id} className="group relative bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none hover:shadow-2xl hover:shadow-primary-600/10 hover:-translate-y-1 transition-all duration-300">
-                            {/* Card Header */}
-                            <div className="flex items-start justify-between mb-8">
-                                <div className="p-5 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] group-hover:bg-primary-500/10 transition-colors">
-                                    <Building2 className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-primary-600" />
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => openEditModal(company)}
-                                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
-                                    >
-                                        <Edit2 className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(company.id)}
-                                        className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Company Content */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white line-clamp-1">{company.name}</h3>
-                                    {company.website && (
-                                        <a href={company.website} target="_blank" rel="noreferrer" className="text-primary-500 hover:scale-110 transition-transform">
-                                            <ExternalLink className="w-4 h-4" />
-                                        </a>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.campus === 'NEC'
-                                            ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50' :
-                                            company.campus === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50' :
-                                            'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'
-                                        }`}>
-                                        {company.campus || 'Both'}
-                                    </span>
-                                    <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.on_off_campus === 'On Campus'
-                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/50'
-                                            : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50'
-                                        }`}>
-                                        {company.on_off_campus}
-                                    </span>
-                                    {company.category && (
-                                        <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 rounded-full dark:bg-blue-900/20 dark:border-blue-800/50">
-                                            {company.category}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800">
-                                            <Calendar className="w-4 h-4 text-slate-400" />
-                                        </div>
-                                        <span className="font-medium">Drive Date: <span className="text-slate-900 dark:text-white font-bold ml-1">{formatDate(company.drive_date)}</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800">
-                                            <IndianRupee className="w-4 h-4 text-emerald-500" />
-                                        </div>
-                                        <span className="font-medium">Salary: <span className="text-slate-900 dark:text-white font-bold ml-1">{company.salary_lpa ? `₹${company.salary_lpa} LPA` : 'Competitive'}</span></span>
-                                    </div>
-
-                                </div>
-
-                                {company.description && (
-                                    <p className="text-slate-500 dark:text-slate-500 text-sm leading-relaxed line-clamp-3 italic mb-8">
-                                        "{company.description}"
-                                    </p>
-                                )}
-
-                                <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex -space-x-2">
-                                            <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 border-2 border-white dark:border-slate-900">
-                                                {eligibleCounts[company.id] || 0}
+            {/* Table Area */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden min-h-[400px]">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('name')}>
+                                    <div className="flex items-center">Company {renderSortIcon('name')}</div>
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('category')}>
+                                    <div className="flex items-center">Category {renderSortIcon('category')}</div>
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('drive_date')}>
+                                    <div className="flex items-center">Drive Date {renderSortIcon('drive_date')}</div>
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('salary_lpa')}>
+                                    <div className="flex items-center">Salary {renderSortIcon('salary_lpa')}</div>
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('on_off_campus')}>
+                                    <div className="flex items-center">Type {renderSortIcon('on_off_campus')}</div>
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                    Campus
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
+                                    Eligible
+                                </th>
+                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [1, 2, 3, 4, 5].map(i => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td colSpan="8" className="p-6"><div className="h-12 bg-slate-50 dark:bg-slate-800 rounded-xl w-full" /></td>
+                                    </tr>
+                                ))
+                            ) : companies.length > 0 ? (
+                                companies.map((company) => (
+                                    <tr key={company.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                                        <td className="p-6 align-middle">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl group-hover:bg-primary-500/10 transition-colors">
+                                                    <Building2 className="w-5 h-5 text-slate-400 group-hover:text-primary-600" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-bold text-slate-900 dark:text-white">{company.name}</span>
+                                                        {company.website && (
+                                                            <a href={company.website} target="_blank" rel="noreferrer" className="text-primary-500 hover:scale-110 transition-transform">
+                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                    {company.on_off_campus === 'Off Campus' && company.cambus_venue && (
+                                                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                            <MapPin className="w-3 h-3" />
+                                                            {company.cambus_venue}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
+                                        </td>
+                                        <td className="p-6 align-middle">
+                                            {company.category && (
+                                                <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 rounded-full dark:bg-blue-900/20 dark:border-blue-800/50">
+                                                    {company.category}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-6 align-middle">
+                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                                                <Calendar className="w-4 h-4 text-slate-400" />
+                                                {formatDate(company.drive_date)}
+                                            </div>
+                                        </td>
+                                        <td className="p-6 align-middle">
+                                            <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                                                <IndianRupee className="w-4 h-4" />
+                                                {company.salary_lpa ? `${company.salary_lpa}` : 'Competitive'}
+                                            </div>
+                                        </td>
+                                        <td className="p-6 align-middle">
+                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.on_off_campus === 'On Campus'
+                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/50'
+                                                    : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50'
+                                                }`}>
+                                                {company.on_off_campus}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 align-middle">
+                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.campus === 'NEC'
+                                                    ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50' :
+                                                    company.campus === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50' :
+                                                    'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'
+                                                }`}>
+                                                {company.campus || 'Both'}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 align-middle text-center">
+                                            <div className="flex justify-center">
+                                                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 border-2 border-white dark:border-slate-900 shadow-sm">
+                                                    {eligibleCounts[company.id] || 0}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => navigate(`/admin/companies/${company.id}/eligible-students`)}
+                                                    className="p-2 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                                                    title="View Eligible Students"
+                                                >
+                                                    <Users className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => openEditModal(company)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                    title="Edit Company"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(company.id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                    title="Delete Company"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="8" className="p-20 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-full mb-4">
+                                                <Info className="w-8 h-8 text-slate-300" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Companies Found</h3>
+                                            <p className="text-slate-500">Try adjusting your search or add a new partner</p>
                                         </div>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Eligible Students</span>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button className="flex items-center gap-1 text-[10px] font-bold text-primary-600 uppercase tracking-wider group-hover:gap-2 transition-all">
-                                            View Details <ChevronRight className="w-3 h-3" />
-                                        </button>
-                                        <button 
-                                            onClick={() => navigate(`/admin/companies/${company.id}/eligible-students`)}
-                                            className="flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-[10px] font-bold text-primary-600 uppercase tracking-wider rounded-xl hover:bg-primary-100 transition-all border border-primary-100"
-                                        >
-                                            <Users className="w-3.5 h-3.5" />
-                                            Eligible Students
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="col-span-full py-20 bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center">
-                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-full mb-4">
-                            <Info className="w-8 h-8 text-slate-300" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Companies Found</h3>
-                        <p className="text-slate-500">Try adjusting your search or add a 10th partner</p>
-                    </div>
-                )}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <Pagination 
+                    currentPage={page} 
+                    totalPages={totalPages} 
+                    onPageChange={(p) => setPage(p)} 
+                />
             </div>
 
             {/* Modal Area (Popup Modal design from StudentDetails) */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)} />
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
                         {/* Modal Header */}
                         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <div className="flex items-center gap-4">
@@ -406,6 +482,12 @@ const ManageCompanies = () => {
                                     {renderInput('Placement Type', 'on_off_campus', 'text', ['On Campus', 'Off Campus'])}
 
                                     
+                                    {formData.on_off_campus === 'Off Campus' && (
+                                        <div className="col-span-full">
+                                            {renderInput('Campus/Drive Venue', 'cambus_venue', 'text')}
+                                        </div>
+                                    )}
+
                                     <div className="col-span-full flex flex-col gap-1.5">
                                         <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Company Description</label>
                                         <textarea
@@ -472,9 +554,8 @@ const ManageCompanies = () => {
                                 {isEditMode ? 'Update Profile' : 'Save Company'}
                             </button>
                         </div>
-                    </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

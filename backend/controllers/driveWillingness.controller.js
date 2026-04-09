@@ -49,7 +49,7 @@ export const getDriveAttendance = async (req, res) => {
             const statusRecord = willingness.find(w => w.student_reg_no === student.reg_no);
             return {
                 ...student,
-                willing_status: statusRecord ? statusRecord.status : 'Pending',
+                willing_status: statusRecord ? statusRecord.status : 'Willing',
                 remarks: statusRecord ? statusRecord.remarks : '',
                 updated_at: statusRecord ? statusRecord.updated_at : null
             };

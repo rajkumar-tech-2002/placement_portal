@@ -12,7 +12,7 @@ const setupTables = async () => {
                 student_reg_no VARCHAR(255) NOT NULL,
                 department VARCHAR(100),
                 cambus_details VARCHAR(20),
-                status ENUM('Pending', 'Willing', 'Not Willing', 'Attended', 'Absent') DEFAULT 'Pending',
+                status ENUM('Pending', 'Willing', 'Not Willing', 'Attended', 'Absent') DEFAULT 'Willing',
                 coordinator_id VARCHAR(255),
                 remarks TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -27,6 +27,7 @@ import {
 import toast from 'react-hot-toast';
 import Pagination from '../../components/common/Pagination';
 import CampusFilter from '../../components/common/CampusFilter';
+import Modal from '../../components/common/Modal';
 
 const LeetCodeDetails = () => {
     const { user } = useAuth();
@@ -377,10 +378,8 @@ const LeetCodeDetails = () => {
             </div>
 
             {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                             <div>
                                 <h2 className="text-xl font-bold">{isEditMode ? 'Edit LeetCode Data' : 'Add LeetCode Data'}</h2>
@@ -409,8 +408,7 @@ const LeetCodeDetails = () => {
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+            </Modal>
         </div>
     );
 };

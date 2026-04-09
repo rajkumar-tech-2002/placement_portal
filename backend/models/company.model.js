@@ -2,18 +2,54 @@ import pool from '../config/db.config.js';
 
 class Company {
     static async findAll() {
+        // Keep this for backward compatibility and internal use if needed
         const [companies] = await pool.query('SELECT * FROM companies ORDER BY name ASC');
         return companies;
     }
 
+    static async findAllPaged(limit = 10, offset = 0, search = '', sortBy = 'drive_date', sortOrder = 'DESC') {
+        let sql = 'SELECT * FROM companies';
+        const params = [];
+
+        if (search) {
+            sql += ' WHERE name LIKE ? OR category LIKE ?';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        // Validate sortBy to prevent SQL injection
+        const allowedSortFields = ['name', 'drive_date', 'category', 'salary_lpa', 'on_off_campus'];
+        const validatedSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'drive_date';
+        const validatedSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        sql += ` ORDER BY ${validatedSortBy} ${validatedSortOrder}`;
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+
+        const [companies] = await pool.query(sql, params);
+        return companies;
+    }
+
+    static async countAll(search = '') {
+        let sql = 'SELECT COUNT(*) as count FROM companies';
+        const params = [];
+
+        if (search) {
+            sql += ' WHERE name LIKE ? OR category LIKE ?';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        const [result] = await pool.query(sql, params);
+        return result[0].count;
+    }
+
     static async create(companyData) {
         const {
-            name, website, description, campus, drive_date, category, on_off_campus, salary_lpa,
+            name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa,
             min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference
         } = companyData;
         const [result] = await pool.query(
-            'INSERT INTO companies (name, website, description, campus, drive_date, category, on_off_campus, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, website, description, campus, drive_date, category, on_off_campus, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference]
+            'INSERT INTO companies (name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference]
         );
         const companyId = result.insertId;
 
@@ -27,12 +63,12 @@ class Company {
 
     static async update(id, companyData) {
         const {
-            name, website, description, campus, drive_date, category, on_off_campus, salary_lpa,
+            name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa,
             min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference
         } = companyData;
         await pool.query(
-            'UPDATE companies SET name = ?, website = ?, description = ?, campus = ?, drive_date = ?, category = ?, on_off_campus = ?, salary_lpa = ?, min_10th_percent = ?, min_12th_percent = ?, min_ug_cgpa = ?, max_history_arrears = ?, max_current_arrears = ?, gender_preference = ? WHERE id = ?',
-            [name, website, description, campus, drive_date, category, on_off_campus, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference, id]
+            'UPDATE companies SET name = ?, website = ?, description = ?, campus = ?, drive_date = ?, category = ?, on_off_campus = ?, cambus_venue = ?, salary_lpa = ?, min_10th_percent = ?, min_12th_percent = ?, min_ug_cgpa = ?, max_history_arrears = ?, max_current_arrears = ?, gender_preference = ? WHERE id = ?',
+            [name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference, id]
         );
 
         // Sync eligible students automatically (in case criteria changed)

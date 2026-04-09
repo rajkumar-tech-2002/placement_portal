@@ -3,7 +3,7 @@ import User from '../models/user.model.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
 export const createUser = async (req, res) => {
-    const { name, user_id, password, role, department } = req.body;
+    const { name, user_id, password, role, department, cambus } = req.body;
 
     try {
         // Check if user already exists
@@ -19,7 +19,8 @@ export const createUser = async (req, res) => {
             user_id,
             password: hashedPassword,
             role,
-            department
+            department,
+            cambus
         });
 
         return successResponse(res, { userId: newUser.id }, 'User created successfully', 201);

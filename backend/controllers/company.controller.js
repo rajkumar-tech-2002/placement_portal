@@ -32,8 +32,25 @@ export const deleteCompany = async (req, res) => {
 
 export const getAllCompanies = async (req, res) => {
     try {
-        const companies = await Company.findAll();
-        return successResponse(res, { companies });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        const sortBy = req.query.sortBy || 'drive_date';
+        const sortOrder = req.query.sortOrder || 'DESC';
+
+        const [companies, total] = await Promise.all([
+            Company.findAllPaged(limit, offset, search, sortBy, sortOrder),
+            Company.countAll(search)
+        ]);
+
+        return successResponse(res, { 
+            data: companies,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (error) {
         return errorResponse(res, error.message);
     }

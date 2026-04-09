@@ -159,12 +159,9 @@ const DriveAttendance = () => {
                                         <td className="px-8 py-6 text-center">
                                             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest ${
                                                 student.willing_status === 'Willing' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                                                student.willing_status === 'Not Willing' ? 'bg-red-50 border-red-100 text-red-600' :
-                                                'bg-amber-50 border-amber-100 text-amber-600'
+                                                'bg-red-50 border-red-100 text-red-600'
                                             }`}>
-                                                {student.willing_status === 'Willing' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
-                                                 student.willing_status === 'Not Willing' ? <XCircle className="w-3.5 h-3.5" /> :
-                                                 <Clock className="w-3.5 h-3.5" />}
+                                                {student.willing_status === 'Willing' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                                                 {student.willing_status}
                                             </div>
                                             {student.updated_at && (
@@ -175,28 +172,25 @@ const DriveAttendance = () => {
                                         </td>
                                         <td className="px-8 py-6 text-right pr-12">
                                             <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(student, 'Willing')}
-                                                    disabled={savingId === student.reg_no || student.willing_status === 'Willing'}
-                                                    className={`p-2.5 rounded-xl transition-all ${
-                                                        student.willing_status === 'Willing' 
-                                                        ? 'bg-emerald-500 text-white cursor-default' 
-                                                        : 'bg-slate-100 hover:bg-emerald-500 hover:text-white dark:bg-slate-800 text-slate-400 hover:scale-110 active:scale-95'
-                                                    }`}
-                                                >
-                                                    {savingId === student.reg_no ? <Clock className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(student, 'Not Willing')}
-                                                    disabled={savingId === student.reg_no || student.willing_status === 'Not Willing'}
-                                                    className={`p-2.5 rounded-xl transition-all ${
-                                                        student.willing_status === 'Not Willing' 
-                                                        ? 'bg-red-500 text-white cursor-default' 
-                                                        : 'bg-slate-100 hover:bg-red-500 hover:text-white dark:bg-slate-800 text-slate-400 hover:scale-110 active:scale-95'
-                                                    }`}
-                                                >
-                                                    <XCircle className="w-4 h-4" />
-                                                </button>
+                                                {student.willing_status === 'Willing' ? (
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(student, 'Not Willing')}
+                                                        disabled={savingId === student.reg_no}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider border border-red-100 dark:border-red-800 disabled:opacity-50"
+                                                    >
+                                                        {savingId === student.reg_no ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                                        Mark Not Willing
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(student, 'Willing')}
+                                                        disabled={savingId === student.reg_no}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider border border-emerald-100 dark:border-emerald-800 disabled:opacity-50"
+                                                    >
+                                                        {savingId === student.reg_no ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                                        Restore Willing
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
