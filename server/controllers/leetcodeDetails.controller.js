@@ -1,4 +1,5 @@
 import LeetCodeDetail from '../models/leetcodeDetails.model.js';
+import { extractUsername, fetchLeetCodeData, delay } from '../utils/leetcodeFetcher.js';
 import { Parser } from 'json2csv';
 import { parse } from 'csv-parse/sync';
 import multer from 'multer';
@@ -151,4 +152,158 @@ export const importDetails = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// --- SYNC LOGIC ---
+
+let isSyncRunning = false;
+
+export const syncAllDetails = async (req, res) => {
+    if (isSyncRunning) {
+        if (res) return res.status(400).json({ message: 'Sync already in progress' });
+        return;
+    }
+
+    try {
+        // Fetch ALL details that have a profile URL
+        const details = await LeetCodeDetail.getAll();
+        const recordsToSync = details.filter(d => d.leet_code_profile);
+
+        if (recordsToSync.length === 0) {
+            if (res) return res.json({ message: 'No records found with LeetCode profile URLs' });
+            return;
+        }
+
+        // Start background sync
+        isSyncRunning = true;
+        if (res) res.json({ message: 'Sync started in background', total: recordsToSync.length });
+
+        // Background loop
+        (async () => {
+            console.log(`[SYNC STARTED] Total records: ${recordsToSync.length}`);
+            for (const record of recordsToSync) {
+                try {
+                    // Throttling: Skip if synced less than 6 hours ago
+                    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+                    if (record.last_synced_at && new Date(record.last_synced_at) > sixHoursAgo) {
+                        console.log(`[SYNC SKIP] ${record.reg_no} - Recently synced`);
+                        continue;
+                    }
+
+                    await syncSingleRecord(record);
+                    await delay(3000); // 3s delay between students
+                } catch (err) {
+                    console.error(`[SYNC FAILED] ${record.reg_no}: ${err.message}`);
+                }
+            }
+            isSyncRunning = false;
+            console.log('[SYNC COMPLETED]');
+        })();
+
+    } catch (error) {
+        isSyncRunning = false;
+        if (res) res.status(500).json({ message: error.message });
+        else console.error(`[CRON SYNC FAILED] ${error.message}`);
+    }
+};
+
+export const syncDetailById = async (req, res) => {
+    try {
+        const record = await LeetCodeDetail.getById(req.params.id);
+        if (!record) return res.status(404).json({ message: 'Record not found' });
+        
+        if (!record.leet_code_profile) {
+            return res.status(400).json({ message: 'No profile URL found for this record' });
+        }
+
+        await syncSingleRecord(record);
+        const updatedRecord = await LeetCodeDetail.getById(req.params.id);
+        res.json({ message: 'Sync successful', data: updatedRecord });
+    } catch (error) {
+        res.status(500).json({ message: `Sync failed: ${error.message}` });
+    }
+};
+
+/**
+ * Helper to sync a single student record
+ */
+async function syncSingleRecord(record) {
+    const username = extractUsername(record.leet_code_profile);
+    if (!username) {
+        await LeetCodeDetail.update(record.id, {
+            sync_status: 'FAILED',
+            error_message: 'Invalid profile URL format',
+            updated_at: new Date()
+        });
+        return;
+    }
+
+    try {
+        await LeetCodeDetail.update(record.id, { sync_status: 'IN_PROGRESS' });
+        
+        const data = await fetchLeetCodeData(username);
+        
+        await LeetCodeDetail.update(record.id, {
+            leetcode_username: data.username,
+            problem_solved_count: data.totalSolved,
+            total_solved: data.totalSolved,
+            easy_solved: data.easySolved,
+            medium_solved: data.mediumSolved,
+            hard_solved: data.hardSolved,
+            total_easy: data.totalEasy,
+            total_medium: data.totalMedium,
+            total_hard: data.totalHard,
+            contest_rating: data.contestRating,
+            global_ranking: data.globalRanking,
+            leet_rank: data.ranking,
+            last_contest_name: data.lastContestName,
+            last_contest_date: data.lastContestDate,
+            last_contest_rank: data.lastContestRank,
+            last_contest_solved: data.lastContestSolved,
+            last_contest_total_questions: data.lastContestTotal,
+            total_participants: data.totalParticipants,
+            last_synced_at: new Date(),
+            sync_status: 'SUCCESS',
+            error_message: null,
+            updated_at: new Date()
+        });
+        console.log(`[SYNC SUCCESS] ${record.reg_no} (${username})`);
+    } catch (err) {
+        await LeetCodeDetail.update(record.id, {
+            sync_status: 'FAILED',
+            error_message: err.message,
+            updated_at: new Date()
+        });
+        throw err;
+    }
+}
+
+export const getEligibleDetails = async (req, res) => {
+    try {
+        const minSolved = parseInt(req.query.minSolved) || 0;
+        const minRating = parseInt(req.query.minRating) || 0;
+        
+        // We'll reuse the getAll logic but add specific filters
+        // For simplicity, we can fetch all and filter, or add to model
+        // Better to add to model, but for now we'll fetch all and filter in controller
+        // since the dataset is usually manageable (few hundreds/thousands)
+        
+        const details = await LeetCodeDetail.getAll(null, null, '', 'total_solved', 'DESC');
+        const filtered = details.filter(d => 
+            (d.total_solved || 0) >= minSolved && 
+            (d.contest_rating || 0) >= minRating
+        );
+
+        res.json({
+            data: filtered,
+            total: filtered.length,
+            criteria: { minSolved, minRating }
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getSyncStatus = (req, res) => {
+    res.json({ isSyncRunning });
 };

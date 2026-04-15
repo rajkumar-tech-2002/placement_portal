@@ -22,7 +22,12 @@ import {
     Trophy,
     Globe,
     BarChart3,
-    ExternalLink
+    ExternalLink,
+    RefreshCw,
+    AlertCircle,
+    CheckCircle2,
+    Calendar,
+    Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/common/Pagination';
@@ -50,6 +55,10 @@ const LeetCodeDetails = () => {
     const [selectedCampuses, setSelectedCampuses] = useState(
         user?.role === 'COORDINATOR' && user?.campus ? [user.campus] : []
     );
+    const [isSyncingAll, setIsSyncingAll] = useState(false);
+    const [minSolved, setMinSolved] = useState(0);
+    const [minRating, setMinRating] = useState(0);
+    const [showEligibleOnly, setShowEligibleOnly] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -61,29 +70,89 @@ const LeetCodeDetails = () => {
 
     useEffect(() => {
         fetchDetails();
-    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses]);
+    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses, showEligibleOnly]);
+
+    useEffect(() => {
+        checkSyncStatus();
+        const interval = setInterval(checkSyncStatus, 5000); // Poll sync status every 5s if needed
+        return () => clearInterval(interval);
+    }, []);
+
+    const checkSyncStatus = async () => {
+        try {
+            const response = await api.get('/leetcode-details/sync-status');
+            setIsSyncingAll(response.data.isSyncRunning);
+        } catch (error) {
+            console.error('Failed to fetch sync status');
+        }
+    };
 
     const fetchDetails = async () => {
         try {
             setLoading(true);
-            const response = await api.get(`/leetcode-details`, {
+            const endpoint = showEligibleOnly ? '/leetcode-details/eligible' : '/leetcode-details';
+            const response = await api.get(endpoint, {
                 params: {
                     page,
                     limit,
                     search: debouncedSearch,
                     sortBy,
                     sortOrder,
-                    campus: selectedCampuses
+                    campus: selectedCampuses,
+                    minSolved: showEligibleOnly ? 200 : minSolved,
+                    minRating: showEligibleOnly ? 1500 : minRating
                 }
             });
             setDetails(response.data.data);
             setTotal(response.data.total);
-            setTotalPages(response.data.totalPages);
+            setTotalPages(response.data.totalPages || 1);
             setLoading(false);
         } catch (error) {
             toast.error('Failed to fetch LeetCode details');
             setLoading(false);
         }
+    };
+
+    const handleSyncAll = async () => {
+        try {
+            setIsSyncingAll(true);
+            const response = await api.post('/leetcode-details/sync-all');
+            toast.success(response.data.message);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Sync failed to start');
+            setIsSyncingAll(false);
+        }
+    };
+
+    const handleSyncSingle = async (id) => {
+        const loadingToast = toast.loading('Syncing student data...');
+        try {
+            await api.post(`/leetcode-details/sync/${id}`);
+            toast.dismiss(loadingToast);
+            toast.success('Student data synced');
+            fetchDetails();
+        } catch (error) {
+            toast.dismiss(loadingToast);
+            toast.error(error.response?.data?.message || 'Sync failed');
+        }
+    };
+
+    const formatTimeAgo = (dateString) => {
+        if (!dateString) return 'Never';
+        const date = new Date(dateString);
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " minutes ago";
+        return Math.floor(seconds) + " seconds ago";
     };
 
     const handleSort = (field) => {
@@ -227,13 +296,29 @@ const LeetCodeDetails = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Monitor student programming performance</p>
                 </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     {selectedIds.length > 0 && (
-                        <button onClick={handleBulkDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-semibold text-sm">
+                        <button onClick={handleBulkDelete} className="flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition-colors">
                             <Trash2 className="w-4 h-4" />
                             Delete {selectedIds.length}
                         </button>
                     )}
+                    
+                    <button 
+                        onClick={handleSyncAll} 
+                        disabled={isSyncingAll}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md ${
+                            isSyncingAll 
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                            : 'bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95'
+                        }`}
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isSyncingAll ? 'animate-spin' : ''}`} />
+                        {isSyncingAll ? 'Syncing...' : 'Sync All'}
+                    </button>
+
+                    <div className="h-10 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden md:block" />
+
                     <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 transition-all">
                         <Download className="w-4 h-4 text-primary-500" />
                         Template
@@ -261,16 +346,57 @@ const LeetCodeDetails = () => {
 
             {/* Table */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="relative w-full md:w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input type="text" placeholder="Search by name or reg no..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm font-medium" />
-                    </div>
-                    {user?.role !== 'COORDINATOR' && (
-                        <div className="w-full md:w-auto min-w-[200px]">
-                            <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-4 items-center justify-between">
+                    <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto items-center">
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input type="text" placeholder="Search by name or reg no..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm font-medium transition-all" />
                         </div>
-                    )}
+                        {user?.role !== 'COORDINATOR' && (
+                            <div className="w-full md:w-56">
+                                <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 px-3">
+                            <input 
+                                type="checkbox" 
+                                id="eligible-only" 
+                                checked={showEligibleOnly} 
+                                onChange={(e) => setShowEligibleOnly(e.target.checked)}
+                                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                            />
+                            <label htmlFor="eligible-only" className="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer flex items-center gap-1">
+                                <Trophy className="w-4 h-4 text-amber-500" />
+                                Placement Eligible
+                            </label>
+                        </div>
+                        
+                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Min Solved</span>
+                                <input 
+                                    type="number" 
+                                    value={minSolved} 
+                                    onChange={(e) => setMinSolved(parseInt(e.target.value) || 0)}
+                                    className="w-16 p-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary-500/50"
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Min Rating</span>
+                                <input 
+                                    type="number" 
+                                    value={minRating} 
+                                    onChange={(e) => setMinRating(parseInt(e.target.value) || 0)}
+                                    className="w-16 p-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary-500/50"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -288,19 +414,18 @@ const LeetCodeDetails = () => {
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('name')}>
                                     <div className="flex items-center">Name {renderSortIcon('name')}</div>
                                 </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('leet_code_title')}>
-                                    <div className="flex items-center">Leetcode Test {renderSortIcon('leet_code_title')}</div>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <div className="flex items-center">Status</div>
                                 </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('problem_solved_count')}>
-                                    <div className="flex items-center">Solved {renderSortIcon('problem_solved_count')}</div>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('total_solved')}>
+                                    <div className="flex items-center">Solved {renderSortIcon('total_solved')}</div>
                                 </th>
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('contest_rating')}>
                                     <div className="flex items-center">Rating {renderSortIcon('contest_rating')}</div>
                                 </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('global_ranking')}>
-                                    <div className="flex items-center">Ranking {renderSortIcon('global_ranking')}</div>
-                                </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Leet Rank</th>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Global Ranking</th>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Most Recent Contest</th>
+                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Last Sync</th>
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Profile</th>
                                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
@@ -322,32 +447,137 @@ const LeetCodeDetails = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <Target className="w-4 h-4 text-emerald-500" />
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.leet_code_title || 0}</span>
+                                            {item.sync_status === 'SUCCESS' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold">
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                    SYNCED
+                                                </div>
+                                            ) : item.sync_status === 'FAILED' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold group/error relative">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    ERROR
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/error:block w-48 p-2 bg-slate-900 text-white rounded-lg shadow-xl text-[10px] z-50">
+                                                        {item.error_message || 'Unknown error'}
+                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                                                    </div>
+                                                </div>
+                                            ) : item.sync_status === 'IN_PROGRESS' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold">
+                                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                                    SYNCING
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-bold">
+                                                    <Clock className="w-3 h-3" />
+                                                    PENDING
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Target className="w-4 h-4 text-emerald-500" />
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                        {item.total_solved || 0}
+                                                        <span className="text-slate-400 font-medium ml-1">/ {item.total_questions || '-'}</span>
+                                                    </span>
+                                                </div>
+                                                {item.total_questions > 0 && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold">
+                                                        {Math.round((item.total_solved / item.total_questions) * 100)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <div className="flex flex-col flex-1">
+                                                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                                        <div className="h-full bg-emerald-400" style={{ width: `${(item.easy_solved / (item.total_easy || 1)) * 100}%` }} />
+                                                        <div className="h-full bg-amber-400" style={{ width: `${(item.medium_solved / (item.total_medium || 1)) * 100}%` }} />
+                                                        <div className="h-full bg-red-400" style={{ width: `${(item.hard_solved / (item.total_hard || 1)) * 100}%` }} />
+                                                    </div>
+                                                    <div className="flex justify-between mt-1">
+                                                        <span className="text-[9px] font-bold text-emerald-600">{item.easy_solved || 0} / {item.total_easy || '-'}E</span>
+                                                        <span className="text-[9px] font-bold text-amber-600">{item.medium_solved || 0} / {item.total_medium || '-'}M</span>
+                                                        <span className="text-[9px] font-bold text-red-600">{item.hard_solved || 0} / {item.total_hard || '-'}H</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <Target className="w-4 h-4 text-emerald-500" />
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.problem_solved_count || 0}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <Trophy className="w-4 h-4 text-amber-500" />
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.contest_rating || 0}</span>
+                                            <Trophy className="w-4 h-4 text-amber-400" />
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.contest_rating || 0}</span>
+                                                    {item.attended_contests > 0 && (
+                                                        <span className="text-[10px] text-slate-400 font-medium">({item.attended_contests} events)</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">RANK #{item.leet_rank || '-'}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">
                                             <Globe className="w-4 h-4 text-blue-500" />
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">#{item.global_ranking || '-'}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                    {item.global_ranking?.toLocaleString() || '-'}
+                                                </span>
+                                                {item.total_participants > 0 && (
+                                                    <span className="text-[10px] text-slate-400 font-medium">
+                                                        / {item.total_participants.toLocaleString()} participating
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <Trophy className="w-4 h-4 text-amber-500" />
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.leet_rank || '-'}</span>
+                                        {item.last_contest_name ? (
+                                            <div className="flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800 group/contest relative">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px]" title={item.last_contest_name}>
+                                                        {item.last_contest_name}
+                                                    </span>
+                                                    <span className="text-[10px] font-black text-primary-600">#{item.last_contest_rank}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1 text-[9px] text-slate-400 font-medium italic">
+                                                        <Calendar className="w-2.5 h-2.5" />
+                                                        {new Date(item.last_contest_date).toLocaleDateString()}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
+                                                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                                                            {item.last_contest_solved} / {item.last_contest_total_questions}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-slate-400 italic text-[10px]">
+                                                <BarChart3 className="w-3.5 h-3.5" />
+                                                No recent contest
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                                                <Clock className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold uppercase tracking-tight">{formatTimeAgo(item.last_synced_at)}</span>
+                                            </div>
+                                            {item.last_synced_at && (
+                                                <div className="flex items-center gap-1 text-slate-400">
+                                                    <Calendar className="w-3 h-3" />
+                                                    <span className="text-[10px] font-medium">{new Date(item.last_synced_at).toLocaleDateString()}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -365,6 +595,13 @@ const LeetCodeDetails = () => {
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => handleSyncSingle(item.id)} 
+                                                title="Sync Live Data"
+                                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                            >
+                                                <RefreshCw className={`w-4 h-4 ${item.sync_status === 'IN_PROGRESS' ? 'animate-spin' : ''}`} />
+                                            </button>
                                             <button onClick={() => { setFormData(item); setIsEditMode(true); setIsModalOpen(true); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
                                             <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                         </div>

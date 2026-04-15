@@ -12,6 +12,12 @@ router.get('/export-template', controller.exportTemplate);
 router.post('/import', controller.uploadMiddleware, controller.importDetails);
 router.post('/delete-many', controller.deleteManyDetails);
 
+// Sync and Eligibility
+router.get('/eligible', controller.getEligibleDetails);
+router.get('/sync-status', controller.getSyncStatus);
+router.post('/sync-all', controller.syncAllDetails);
+router.post('/sync/:id', controller.syncDetailById);
+
 router.get('/', controller.getAllDetails);
 router.get('/:id', controller.getDetailById);
 router.post('/', controller.createDetail);
