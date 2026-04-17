@@ -6,7 +6,7 @@ class LeetCodeDetail {
         const params = [];
         const conditions = [];
         
-        const allowedSortColumns = ['reg_no', 'name', 'campus_details', 'department', 'problem_solved_count', 'contest_rating', 'global_ranking', 'leet_rank', 'created_at'];
+        const allowedSortColumns = ['reg_no', 'name', 'campus_details', 'department', 'total_solved', 'contest_rating', 'global_ranking', 'leet_rank', 'created_at'];
         const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'created_at';
         const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
@@ -30,7 +30,14 @@ class LeetCodeDetail {
             sql += ' WHERE ' + conditions.join(' AND ');
         }
 
-        sql += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
+        // Apply primary sort, followed by campus, department, and reg_no as secondary sorts
+        if (safeSortBy === 'created_at') {
+            // Default view: sort by campus, dept, reg_no
+            sql += ` ORDER BY campus_details ASC, department ASC, reg_no ASC`;
+        } else {
+            // Specific column sort: apply user choice first, then others for ties
+            sql += ` ORDER BY ${safeSortBy} ${safeSortOrder}, campus_details ASC, department ASC, reg_no ASC`;
+        }
 
         if (limit !== null && offset !== null) {
             sql += ' LIMIT ? OFFSET ?';
@@ -136,10 +143,7 @@ class LeetCodeDetail {
     }
 
     static async getTemplateColumns() {
-        const [rows] = await pool.query('DESCRIBE leetcode_details');
-        return rows
-            .map(row => row.Field)
-            .filter(field => !['id', 'created_at', 'updated_at'].includes(field));
+        return ['reg_no', 'name', 'campus_details', 'department', 'leetcode_username'];
     }
 }
 

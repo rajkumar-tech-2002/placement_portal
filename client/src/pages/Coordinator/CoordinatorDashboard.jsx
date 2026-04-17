@@ -3,23 +3,27 @@ import { LayoutDashboard, Calendar, Users, Briefcase, ChevronRight, ArrowUpRight
 import * as driveService from '../../services/driveWillingness.service';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../../utils/dateFormatter';
+import PlacementModal from '../../components/common/PlacementModal';
+import { Trophy } from 'lucide-react';
 
 const CoordinatorDashboard = () => {
     const [drives, setDrives] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isPlacementModalOpen, setIsPlacementModalOpen] = useState(false);
     const navigate = useNavigate();
 
+    const fetchDrives = async () => {
+        try {
+            const data = await driveService.getCoordinatorDrives();
+            setDrives(data);
+        } catch (error) {
+            console.error('Failed to fetch drives', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchDrives = async () => {
-            try {
-                const data = await driveService.getCoordinatorDrives();
-                setDrives(data);
-            } catch (error) {
-                console.error('Failed to fetch drives', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchDrives();
     }, []);
 

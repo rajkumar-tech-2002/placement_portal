@@ -50,11 +50,11 @@ const AppContent = () => {
                 ${isAuthPage ? 'h-full' : 'min-h-screen'}
                 flex-1 flex flex-col transition-all duration-300 ease-in-out
             `}>
-                <div className={`flex-1 ${!isAuthPage ? 'container-fluid px-4 py-6 md:px-8' : ''}`}>
+                <div className={`flex-1 ${!isAuthPage ? 'container-fluid px-4 pt-6 pb-20 md:px-8' : ''}`}>
                     <AppRoutes />
                 </div>
-                {!isAuthPage && <Footer />}
             </main>
+            {!isAuthPage && <Footer isSidebarCollapsed={isSidebarCollapsed} />}
         </div>
     );
 };

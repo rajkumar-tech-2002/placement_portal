@@ -21,9 +21,9 @@ import {
     FileText,
     CheckCircle2,
     Calendar,
+    Trophy,
     Mail,
     Phone,
-    Trophy,
     Target,
     MapPin,
     GraduationCap,
@@ -48,7 +48,11 @@ import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
 import toast from 'react-hot-toast';
 import { formatDate } from '../utils/dateFormatter';
 import Pagination from '../components/common/Pagination';
+import DataTable from '../components/common/DataTable';
 import CampusFilter from '../components/common/CampusFilter';
+import InputLabel from '../components/common/InputLabel';
+import SectionTitle from '../components/common/SectionTitle';
+import ModalTitle from '../components/common/ModalTitle';
 
 ChartJS.register(
     CategoryScale,
@@ -76,6 +80,7 @@ const Reports = () => {
 
     // Willing Table State
     const [willingPage, setWillingPage] = useState(1);
+    const [willingLimit, setWillingLimit] = useState(10);
     const [willingTotalPages, setWillingTotalPages] = useState(0);
     const [willingTotal, setWillingTotal] = useState(0);
 
@@ -86,6 +91,7 @@ const Reports = () => {
 
     // Placements Table State
     const [placedPage, setPlacedPage] = useState(1);
+    const [placedLimit, setPlacedLimit] = useState(10);
     const [placedTotalPages, setPlacedTotalPages] = useState(0);
     const [placedTotal, setPlacedTotal] = useState(0);
     const [selectedPlacedCampuses, setSelectedPlacedCampuses] = useState([]);
@@ -106,7 +112,7 @@ const Reports = () => {
         try {
             const data = await getWillingReport({
                 page: willingPage,
-                limit: 10,
+                limit: willingLimit,
                 search: debouncedSearch,
                 campus: selectedCampuses,
                 department: selectedDept,
@@ -125,7 +131,7 @@ const Reports = () => {
         try {
             const data = await getPlacedReport({
                 page: placedPage,
-                limit: 10,
+                limit: placedLimit,
                 search: debouncedSearch,
                 campus: selectedPlacedCampuses,
                 department: selectedPlacedDept,
@@ -185,7 +191,7 @@ const Reports = () => {
         } else if (activeTab === 'placed') {
             fetchPlaced();
         }
-    }, [activeTab, willingPage, placedPage, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany]);
+    }, [activeTab, willingPage, willingLimit, placedPage, placedLimit, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany]);
 
 
     const chartOptions = {
@@ -222,15 +228,106 @@ const Reports = () => {
                     <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
                 </div>
                 <div>
-                    <h3 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</h3>
+                    <InputLabel text={title} className="mb-0.5" />
                     <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
                 </div>
             </div>
         </div>
     );
 
-    const filteredWilling = willingData;
+    const willingnessColumns = [
+        { 
+            header: 'REGISTER NO', 
+            key: 'reg_no', 
+            render: (val) => <span className="font-mono text-sm font-bold text-primary-600">{val}</span>
+        },
+        { 
+            header: 'STUDENT NAME', 
+            key: 'name', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
+        { header: 'DEPARTMENT', key: 'department', className: 'font-semibold text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap' },
+        { 
+            header: 'CAMPUS', 
+            key: 'cambus_details',
+            render: (val) => (
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                }`}>
+                    {val || 'N/A'}
+                </span>
+            )
+        },
+        { 
+            header: 'WILLINGNESS', 
+            key: 'willing',
+            render: () => <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 font-bold rounded-lg text-xs border border-amber-100 dark:border-amber-800/50">Willing</span>
+        },
+        { 
+            header: 'INTERESTED DOMAIN', 
+            key: 'willing_domain',
+            render: (val) => <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-bold rounded-lg text-xs border border-blue-100 dark:border-blue-800/50">{val || 'Not Specified'}</span>
+        },
+        { 
+            header: 'ADDED ON', 
+            key: 'created_at', 
+            className: 'text-right pr-6',
+            render: (val) => <span className="text-slate-400 text-sm">{formatDate(val)}</span>
+        }
+    ];
 
+    const placementColumns = [
+        { 
+            header: 'PHOTO', 
+            key: 'name', 
+            render: (val) => (
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 border-2 border-white dark:border-slate-700 shadow-sm">
+                    {(val || '?').charAt(0)}
+                </div>
+            )
+        },
+        { 
+            header: 'STUDENT', 
+            key: 'name', 
+            render: (val, row) => (
+                <div>
+                    <div className="font-bold text-slate-900 dark:text-white mb-0.5">{val}</div>
+                    <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">{row.reg_no}</div>
+                </div>
+            )
+        },
+        { header: 'DEPARTMENT', key: 'department', className: 'text-sm font-semibold text-slate-600 dark:text-slate-400' },
+        { 
+            header: 'CAMPUS', 
+            key: 'cambus_details',
+            render: (val) => (
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                }`}>
+                    {val || 'N/A'}
+                </span>
+            )
+        },
+        { header: 'COMPANY', key: 'company_name', className: 'font-bold text-primary-600 dark:text-primary-400' },
+        { 
+            header: 'CTC', 
+            key: 'salary', 
+            className: 'font-black text-emerald-600 dark:text-emerald-500 text-sm',
+            render: (val) => `₹ ${val} LPA`
+        },
+        { 
+            header: 'DATE', 
+            key: 'placement_date', 
+            className: 'text-right pr-6',
+            render: (val) => <span className="text-slate-400 text-sm font-medium">{formatDate(val)}</span>
+        }
+    ];
+
+    const filteredWilling = willingData;
     const filteredPlaced = placedData;
 
     // if (loading) return (
@@ -243,12 +340,11 @@ const Reports = () => {
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center tracking-tight">
-                        <FileText className="w-8 h-8 mr-3 text-primary-500" />
-                        Placement Reports</h1>
-                    <p className="text-slate-500 text-sm mt-1">Detailed analysis and student placement records</p>
-                </div>
+                <ModalTitle 
+                    icon={FileText} 
+                    title="Placement Reports" 
+                    description="Detailed analysis and student placement records" 
+                />
                 <div className="flex gap-3">
                     <button onClick={fetchData} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 dark:border-slate-700">
                         <TrendingUp className="w-5 h-5" />
@@ -263,9 +359,9 @@ const Reports = () => {
             {/* Navigation Tabs */}
             <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-fit">
                 {[
-                    { id: 'insights', label: 'Insights', icon: Target },
-                    { id: 'willing', label: 'Willing Students', icon: Users },
-                    { id: 'placed', label: 'Placements', icon: Trophy },
+                    { id: 'insights', label: 'Overall', icon: Target },
+                    { id: 'willing', label: 'Placement Willingness', icon: Users },
+                    { id: 'placed', label: 'Placements Record', icon: Trophy },
                     { id: 'companies', label: 'Company Metrics', icon: Briefcase }
                 ].map(tab => (
                     <button
@@ -302,19 +398,21 @@ const Reports = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm h-[400px] flex flex-col">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-wide">
-                                <Target className="w-5 h-5 text-emerald-500" />
-                                Domain Distribution
-                            </h3>
+                            <SectionTitle 
+                                icon={Target} 
+                                title="Willing Domain" 
+                                subtitle="Student Interest Distribution" 
+                            />
                             <div className="flex-1">
                                 <Doughnut data={domainData} options={chartOptions} />
                             </div>
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm h-[400px] flex flex-col">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-wide">
-                                <BarChart3 className="w-5 h-5 text-blue-500" />
-                                Package Ranges (LPA)
-                            </h3>
+                            <SectionTitle 
+                                icon={BarChart3} 
+                                title="Package Ranges (LPA)" 
+                                subtitle="Salary distribution metrics" 
+                            />
                             <div className="flex-1">
                                 <Bar data={pkgChartData} options={chartOptions} />
                             </div>
@@ -336,10 +434,7 @@ const Reports = () => {
                         </div>
                         
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <GraduationCap className="w-3 h-3" />
-                                Department
-                            </label>
+                            <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
                             <select
                                 value={selectedDept}
                                 onChange={(e) => { setSelectedDept(e.target.value); setWillingPage(1); }}
@@ -353,10 +448,7 @@ const Reports = () => {
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <Grid className="w-3 h-3" />
-                                Willing Domain
-                            </label>
+                            <InputLabel icon={Grid} text="Willing Domain" className="mb-0 mt-1" />
                             <select
                                 value={selectedDomain}
                                 onChange={(e) => { setSelectedDomain(e.target.value); setWillingPage(1); }}
@@ -370,10 +462,7 @@ const Reports = () => {
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <Search className="w-3 h-3" />
-                                Search
-                            </label>
+                            <InputLabel icon={Search} text="Search" className="mb-0 mt-1" />
                             <input 
                                 type="text" 
                                 placeholder="Name or Reg No..." 
@@ -384,72 +473,23 @@ const Reports = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-950/30">
-                            <div className="flex items-center gap-3">
-                                <span className="px-4 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-full text-xs font-black uppercase tracking-wider">
-                                    {willingTotal} Students Found
-                                </span>
-                            </div>
-                        </div>
-                        <div className="overflow-x-auto">
-
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                    <tr>
-                                        <th className="px-8 py-5">Register No</th>
-                                        <th className="px-8 py-5">Student Name</th>
-                                        <th className="px-8 py-5">Department</th>
-                                        <th className="px-8 py-5">Campus</th>
-                                        <th className="px-8 py-5">Status</th>
-                                        <th className="px-8 py-5">Interested Domain</th>
-                                        <th className="px-8 py-5 text-right">Added On</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {willingData.length > 0 ? willingData.map((student) => (
-                                        <tr key={student.reg_no} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
-                                            <td className="px-8 py-5 font-mono text-sm font-bold text-primary-600">{student.reg_no}</td>
-                                            <td className="px-8 py-5 font-bold text-slate-900 dark:text-white">{student.name}</td>
-                                            <td className="px-8 py-5 font-semibold text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap">{student.department}</td>
-                                            <td className="px-8 py-5">
-                                                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
-                                                    student.cambus_details === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
-                                                    student.cambus_details === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
-                                                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                                                }`}>
-                                                    {student.cambus_details || 'N/A'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 font-bold rounded-lg text-xs border border-amber-100 dark:border-amber-800/50">Willing</span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-bold rounded-lg text-xs border border-blue-100 dark:border-blue-800/50">{student.willing_domain || 'Not Specified'}</span>
-                                            </td>
-                                            <td className="px-8 py-5 text-right text-slate-400 text-sm">
-                                                {formatDate(student.created_at)}
-                                            </td>
-                                        </tr>
-                                    )) : (
-                                        <tr>
-                                            <td colSpan="7" className="p-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-slate-400">
-                                                    <Filter className="w-12 h-12 mb-4 opacity-20" />
-                                                    <p className="text-lg font-medium opacity-50">No willing students found matching your criteria</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination 
-                            currentPage={willingPage} 
-                            totalPages={willingTotalPages} 
-                            onPageChange={(p) => setWillingPage(p)} 
-                        />
-                    </div>
+                    <DataTable
+                        columns={willingnessColumns}
+                        data={willingData}
+                        loading={loading}
+                        onLimitChange={(lvl) => {
+                            setWillingLimit(lvl);
+                            setWillingPage(1);
+                        }}
+                        limit={willingLimit}
+                        pagination={{
+                            page: willingPage,
+                            totalPages: willingTotalPages,
+                            totalItems: willingTotal,
+                            onPageChange: setWillingPage
+                        }}
+                        idKey="reg_no"
+                    />
                 </div>
             )}
 
@@ -467,10 +507,7 @@ const Reports = () => {
                         </div>
                         
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <GraduationCap className="w-3 h-3" />
-                                Department
-                            </label>
+                            <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
                             <select
                                 value={selectedPlacedDept}
                                 onChange={(e) => { setSelectedPlacedDept(e.target.value); setPlacedPage(1); }}
@@ -484,10 +521,7 @@ const Reports = () => {
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <Building className="w-3 h-3" />
-                                Select Company
-                            </label>
+                            <InputLabel icon={Building} text="Select Company" className="mb-0 mt-1" />
                             <select
                                 value={selectedPlacedCompany}
                                 onChange={(e) => { setSelectedPlacedCompany(e.target.value); setPlacedPage(1); }}
@@ -501,10 +535,7 @@ const Reports = () => {
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                                <Search className="w-3 h-3" />
-                                Search
-                            </label>
+                            <InputLabel icon={Search} text="Search" className="mb-0 mt-1" />
                             <input 
                                 type="text" 
                                 placeholder="Student or Company..." 
@@ -515,74 +546,23 @@ const Reports = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-950/30">
-                            <div className="flex items-center gap-3">
-                                <span className="px-4 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-full text-xs font-black uppercase tracking-wider">
-                                    {placedTotal} Results Found
-                                </span>
-                            </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                    <tr>
-                                        <th className="px-8 py-5">Photo</th>
-                                        <th className="px-8 py-5">Student</th>
-                                        <th className="px-8 py-5">Department</th>
-                                        <th className="px-8 py-5">Campus</th>
-                                        <th className="px-8 py-5">Company</th>
-                                        <th className="px-8 py-5 text-emerald-600">CTC</th>
-                                        <th className="px-8 py-5 text-right">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {placedData.length > 0 ? placedData.map((student) => (
-                                        <tr key={`${student.reg_no}-${student.company_name}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all group">
-                                            <td className="px-8 py-5">
-                                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 border-2 border-white dark:border-slate-700 shadow-sm">
-                                                    {student.name.charAt(0)}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="font-bold text-slate-900 dark:text-white mb-0.5">{student.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">{student.reg_no}</div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{student.department}</span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
-                                                    student.cambus_details === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
-                                                    student.cambus_details === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
-                                                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                                                }`}>
-                                                    {student.cambus_details || 'N/A'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5 font-bold text-primary-600 dark:text-primary-400">{student.company_name}</td>
-                                            <td className="px-8 py-5 font-black text-emerald-600 dark:text-emerald-500 text-sm">₹ {student.salary} LPA</td>
-                                            <td className="px-8 py-5 text-right text-slate-400 text-sm font-medium">{formatDate(student.placement_date)}</td>
-                                        </tr>
-                                    )) : (
-                                        <tr>
-                                            <td colSpan="7" className="p-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-slate-400">
-                                                    <Filter className="w-12 h-12 mb-4 opacity-20" />
-                                                    <p className="text-lg font-medium opacity-50">No placements found matching your criteria</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination 
-                            currentPage={placedPage} 
-                            totalPages={placedTotalPages} 
-                            onPageChange={(p) => setPlacedPage(p)} 
-                        />
-                    </div>
+                    <DataTable
+                        columns={placementColumns}
+                        data={placedData}
+                        loading={loading}
+                        onLimitChange={(lvl) => {
+                            setPlacedLimit(lvl);
+                            setPlacedPage(1);
+                        }}
+                        limit={placedLimit}
+                        pagination={{
+                            page: placedPage,
+                            totalPages: placedTotalPages,
+                            totalItems: placedTotal,
+                            onPageChange: setPlacedPage
+                        }}
+                        idKey="reg_no"
+                    />
                 </div>
             )}
 
@@ -608,6 +588,7 @@ const Reports = () => {
                     ))}
                 </div>
             )}
+
         </div>
     );
 };

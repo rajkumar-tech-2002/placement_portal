@@ -1,7 +1,7 @@
 import pool from '../config/db.config.js';
 
 class StudentPlacement {
-    static async getAll(limit = null, offset = null, search = '', sortBy = 'created_at', sortOrder = 'DESC', campus = []) {
+    static async getAll(limit = null, offset = null, search = '', sortBy = 'created_at', sortOrder = 'DESC', campus = [], department = '', willing = '') {
         let sql = `
             SELECT 
                 s.*,
@@ -31,6 +31,16 @@ class StudentPlacement {
             conditions.push(`s.cambus_details IN (${placeholders})`);
             params.push(...campus);
         }
+        
+        if (department) {
+            conditions.push('s.department = ?');
+            params.push(department);
+        }
+
+        if (willing) {
+            conditions.push('s.willing = ?');
+            params.push(willing);
+        }
 
         if (conditions.length > 0) {
             sql += ' WHERE ' + conditions.join(' AND ');
@@ -50,7 +60,7 @@ class StudentPlacement {
         return rows;
     }
 
-    static async countAll(search = '', campus = []) {
+    static async countAll(search = '', campus = [], department = '', willing = '') {
         let sql = 'SELECT COUNT(*) as total FROM student_placement_master s';
         const params = [];
         const conditions = [];
@@ -64,6 +74,16 @@ class StudentPlacement {
             const placeholders = campus.map(() => '?').join(', ');
             conditions.push(`s.cambus_details IN (${placeholders})`);
             params.push(...campus);
+        }
+
+        if (department) {
+            conditions.push('s.department = ?');
+            params.push(department);
+        }
+
+        if (willing) {
+            conditions.push('s.willing = ?');
+            params.push(willing);
         }
 
         if (conditions.length > 0) {
@@ -151,7 +171,16 @@ class StudentPlacement {
     }
 
     static async upsertPlacementDetail(data) {
-        const { reg_no, company_name, ...otherData } = data;
+        const { reg_no, company_name, salaryRange, ...otherData } = data;
+        
+        // Map frontend salaryRange to backend salary_range
+        const dbData = {
+            ...otherData,
+            reg_no,
+            company_name,
+            salary_range: salaryRange || otherData.salary_range || ''
+        };
+
         // Check for existing record of the same student in the same company
         const [existing] = await pool.query(
             'SELECT id FROM placement_details WHERE reg_no = ? AND company_name = ?',
@@ -159,15 +188,15 @@ class StudentPlacement {
         );
 
         if (existing.length > 0) {
-            const fields = Object.keys(otherData);
-            const values = Object.values(otherData);
+            const fields = Object.keys(dbData).filter(f => f !== 'reg_no' && f !== 'company_name');
+            const values = fields.map(f => dbData[f]);
             const setClause = fields.map(field => `${field} = ?`).join(', ');
             const sql = `UPDATE placement_details SET ${setClause} WHERE id = ?`;
             await pool.query(sql, [...values, existing[0].id]);
             return { action: 'updated', id: existing[0].id };
         } else {
-            const fields = Object.keys(data);
-            const values = Object.values(data);
+            const fields = Object.keys(dbData);
+            const values = Object.values(dbData);
             const placeholders = fields.map(() => '?').join(', ');
             const sql = `INSERT INTO placement_details (${fields.join(', ')}) VALUES (${placeholders})`;
             const [result] = await pool.query(sql, values);
@@ -191,6 +220,111 @@ class StudentPlacement {
         return rows
             .map(row => row.Field)
             .filter(field => !['id', 'created_at', 'updated_at'].includes(field));
+    }
+
+    static async getAllPlacementDetails(limit = null, offset = null, search = '', sortBy = 'created_at', sortOrder = 'DESC', campus = [], department = '') {
+        let sql = `
+            SELECT 
+                p.*,
+                s.name as student_name,
+                s.department,
+                s.cambus_details as campus
+            FROM placement_details p
+            JOIN student_placement_master s ON p.reg_no = s.reg_no
+        `;
+        const params = [];
+        const conditions = [];
+
+        if (search) {
+            conditions.push('(s.name LIKE ? OR s.reg_no LIKE ? OR p.company_name LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus.length > 0) {
+            const placeholders = campus.map(() => '?').join(', ');
+            conditions.push(`s.cambus_details IN (${placeholders})`);
+            params.push(...campus);
+        }
+
+        if (department) {
+            conditions.push('s.department = ?');
+            params.push(department);
+        }
+
+        if (conditions.length > 0) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        const sortMapping = {
+            'reg_no': 'p.reg_no',
+            'student_name': 's.name',
+            'company_name': 'p.company_name',
+            'salary': 'p.salary',
+            'placement_date': 'p.placement_date',
+            'created_at': 'p.created_at'
+        };
+
+        const orderBy = sortMapping[sortBy] || 'p.created_at';
+        const safeSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        sql += ` ORDER BY ${orderBy} ${safeSortOrder}`;
+
+        if (limit !== null && offset !== null) {
+            sql += ' LIMIT ? OFFSET ?';
+            params.push(Number(limit), Number(offset));
+        }
+
+        const [rows] = await pool.query(sql, params);
+        return rows;
+    }
+
+    static async countAllPlacementDetails(search = '', campus = [], department = '') {
+        let sql = `
+            SELECT COUNT(*) as total 
+            FROM placement_details p
+            JOIN student_placement_master s ON p.reg_no = s.reg_no
+        `;
+        const params = [];
+        const conditions = [];
+
+        if (search) {
+            conditions.push('(s.name LIKE ? OR s.reg_no LIKE ? OR p.company_name LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus.length > 0) {
+            const placeholders = campus.map(() => '?').join(', ');
+            conditions.push(`s.cambus_details IN (${placeholders})`);
+            params.push(...campus);
+        }
+
+        if (department) {
+            conditions.push('s.department = ?');
+            params.push(department);
+        }
+
+        if (conditions.length > 0) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        const [rows] = await pool.query(sql, params);
+        return rows[0].total;
+    }
+
+    static async updatePlacementDetail(id, data) {
+        const { id: _, reg_no, ...updateData } = data; // Prevent updating reg_no if needed, or handle carefully
+        const fields = Object.keys(updateData);
+        if (fields.length === 0) return;
+
+        const values = Object.values(updateData);
+        const setClause = fields.map(field => `${field} = ?`).join(', ');
+
+        const sql = `UPDATE placement_details SET ${setClause} WHERE id = ?`;
+        await pool.query(sql, [...values, id]);
+    }
+
+    static async deletePlacementDetail(id) {
+        await pool.query('DELETE FROM placement_details WHERE id = ?', [id]);
     }
 }
 

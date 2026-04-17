@@ -4,6 +4,9 @@ import { Building2, ChevronLeft, Search, CheckCircle2, XCircle, Clock, AlertCirc
 import * as driveService from '../../services/driveWillingness.service';
 import toast from 'react-hot-toast';
 import { formatDate } from '../../utils/dateFormatter';
+import InputLabel from '../../components/common/InputLabel';
+import SectionTitle from '../../components/common/SectionTitle';
+import ModalTitle from '../../components/common/ModalTitle';
 
 const DriveAttendance = () => {
     const { id } = useParams();
@@ -82,17 +85,11 @@ const DriveAttendance = () => {
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <Building2 className="w-6 h-6 text-primary-500" />
-                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                {driveInfo?.name || 'Drive Attendance'}
-                            </h1>
-                        </div>
-                        <p className="text-slate-500 text-sm flex items-center gap-2 font-medium">
-                             Student Willingness List &bull; {students.length} Eligible Candidates
-                        </p>
-                    </div>
+                    <ModalTitle 
+                        icon={Building2} 
+                        title={driveInfo?.name || 'Drive Attendance'} 
+                        description={`Student Willingness List • ${students.length} Eligible Candidates`} 
+                    />
                 </div>
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

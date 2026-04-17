@@ -16,6 +16,7 @@ import CoordinatorDashboard from '../pages/Coordinator/CoordinatorDashboard';
 import DriveExecution from '../pages/Coordinator/DriveExecution';
 import DriveAttendance from '../pages/Coordinator/DriveAttendance';
 import LeetCodeDetails from '../pages/Admin/LeetCodeDetails';
+import PlacementRecord from '../pages/PlacementRecord';
 
 const AppRoutes = () => {
     return (
@@ -31,6 +32,7 @@ const AppRoutes = () => {
                 <Route path="student-details" element={<StudentDetails />} />
                 <Route path="leetcode-details" element={<LeetCodeDetails />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="placement-record" element={<PlacementRecord />} />
                 <Route path="create-user" element={<CreateUser />} />
                 <Route path="companies/:id/willing-students" element={<WillingStudents />} />
             </Route>
@@ -41,6 +43,7 @@ const AppRoutes = () => {
                 <Route path="dashboard" element={<CoordinatorDashboard />} />
                 <Route path="drives" element={<DriveExecution />} />
                 <Route path="drives/:id/attendance" element={<DriveAttendance />} />
+                <Route path="placement-record" element={<PlacementRecord />} />
                 <Route path="leetcode-details" element={<LeetCodeDetails />} />
             </Route>
 

@@ -12,8 +12,12 @@ import { Mail,
         CheckCircle2, 
         Eye, 
         EyeOff,
-        ChevronDown } from 'lucide-react';
+        ChevronDown,
+        Building2 } from 'lucide-react';
 import loginImg from '../../assets/login_img_2.png';
+import InputLabel from '../../components/common/InputLabel';
+import ModalTitle from '../../components/common/ModalTitle';
+import SectionTitle from '../../components/common/SectionTitle';
 
 const Login = () => {
     const [userId, setUserId] = useState('');
@@ -118,11 +122,11 @@ const Login = () => {
                     
                     {/* Header Section */}
                     <div className="text-center lg:text-left">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary-50 dark:bg-primary-900/20 mb-8 border border-primary-100 dark:border-primary-800">
-                            <ShieldCheck className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-                        </div>
-                        <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-3 tracking-tighter">Login</h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] ml-1">Welcome back to the Placement Portal</p>
+                        <ModalTitle 
+                            icon={ShieldCheck} 
+                            title="Login" 
+                            description="Welcome back to the Placement Portal"
+                        />
                     </div>
 
                     {/* Error Feedback */}
@@ -135,7 +139,7 @@ const Login = () => {
 
                     {/* Role Selection Dropdown */}
                     <div className="space-y-3 group">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1 group-focus-within:text-primary-600 transition-colors">Select Account Role</label>
+                        <InputLabel icon={ShieldCheck} text="Select Account Role" />
                         <div className="relative">
                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary-500 transition-colors pointer-events-none z-10" />
                             <select
@@ -156,7 +160,7 @@ const Login = () => {
                     {/* Campus Selection - Show for Student/Coordinator */}
                     {selectedRole !== 'ADMIN' && (
                         <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Select Campus</label>
+                            <InputLabel icon={Building2} text="Select Campus" />
                             <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
                                 {['NEC', 'NCT'].map((campus) => (
                                     <button
@@ -179,7 +183,7 @@ const Login = () => {
                     {/* Authentication Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2 group">
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1 group-focus-within:text-primary-600 transition-colors">User ID</label>
+                            <InputLabel icon={ShieldCheck} text="User ID" />
                             <div className="relative">
                                 <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
                                 <input
@@ -194,9 +198,7 @@ const Login = () => {
                         </div>
 
                         <div className="space-y-2 group">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-focus-within:text-primary-600 transition-colors">Access Password</label>
-                            </div>
+                            <InputLabel icon={Lock} text="Access Password" />
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
                                 <input

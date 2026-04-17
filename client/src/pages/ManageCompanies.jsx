@@ -33,6 +33,10 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateFormatter';
 import Modal from '../components/common/Modal';
 import Pagination from '../components/common/Pagination';
+import DataTable from '../components/common/DataTable';
+import InputLabel from '../components/common/InputLabel';
+import SectionTitle from '../components/common/SectionTitle';
+import ModalTitle from '../components/common/ModalTitle';
 
 const ManageCompanies = () => {
     const navigate = useNavigate();
@@ -231,19 +235,18 @@ const ManageCompanies = () => {
         setIsModalOpen(true);
     };
 
-    const renderInput = (label, name, type = 'text', options = null) => (
+    const renderInput = (label, name, type = 'text', options = null, required = false) => (
         <div className="flex flex-col gap-2 w-full">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-                {label}
-            </label>
+            <InputLabel text={label} required={required} />
             {options ? (
                 <select
                     name={name}
                     value={formData[name]}
                     onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
                     className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500/40 transition-all outline-none text-sm font-semibold"
-                    required
+                    required={required}
                 >
+                    <option value="">Select {label}</option>
                     {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
             ) : (
@@ -254,24 +257,152 @@ const ManageCompanies = () => {
                     onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
                     className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500/40 transition-all outline-none text-sm font-semibold"
                     placeholder={`Enter ${label.toLowerCase()}`}
-                    required={name === 'name'}
+                    required={required}
                 />
             )}
         </div>
     );
 
+    const columns = [
+        { 
+            header: 'COMPANY', 
+            key: 'name', 
+            sortable: true,
+            render: (val, row) => (
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl group-hover:bg-primary-500/10 transition-colors">
+                        <Building2 className="w-5 h-5 text-slate-400 group-hover:text-primary-600" />
+                    </div>
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{val}</span>
+                            {row.website && (
+                                <a href={row.website} target="_blank" rel="noreferrer" className="text-primary-500 hover:scale-110 transition-transform">
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            )}
+                        </div>
+                        {row.on_off_campus === 'Off Campus' && row.cambus_venue && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                <MapPin className="w-3 h-3" />
+                                {row.cambus_venue}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        },
+        { 
+            header: 'CATEGORY', 
+            key: 'category', 
+            sortable: true,
+            render: (val) => val && (
+                <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 rounded-full dark:bg-blue-900/20 dark:border-blue-800/50">
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: 'DRIVE DATE', 
+            key: 'drive_date', 
+            sortable: true,
+            render: (val) => (
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    {formatDate(val)}
+                </div>
+            )
+        },
+        { 
+            header: 'SALARY', 
+            key: 'salary_lpa', 
+            sortable: true,
+            render: (val) => (
+                <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                    <IndianRupee className="w-4 h-4" />
+                    {val ? `${val}` : 'Competitive'}
+                </div>
+            )
+        },
+        { 
+            header: 'TYPE', 
+            key: 'on_off_campus', 
+            sortable: true,
+            render: (val) => (
+                <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${val === 'On Campus'
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/50'
+                        : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50'
+                    }`}>
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: 'CAMPUS', 
+            key: 'campus',
+            render: (val) => (
+                <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${val === 'NEC'
+                        ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50' :
+                        val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50' :
+                        'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'
+                    }`}>
+                    {val || 'Both'}
+                </span>
+            )
+        },
+        { 
+            header: 'ELIGIBLE', 
+            key: 'id',
+            className: 'text-center',
+            render: (val) => (
+                <div className="flex justify-center">
+                    <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 border-2 border-white dark:border-slate-900 shadow-sm">
+                        {eligibleCounts[val] || 0}
+                    </div>
+                </div>
+            )
+        },
+        { 
+            header: 'ACTIONS', 
+            key: 'actions', 
+            className: 'text-right pr-6',
+            render: (_, row) => (
+                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                        onClick={() => navigate(`/admin/companies/${row.id}/eligible-students`)}
+                        className="p-2 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                        title="View Eligible Students"
+                    >
+                        <Users className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => openEditModal(row)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Edit Company"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => handleDelete(row.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Delete Company"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )
+        }
+    ];
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
-                <div className="flex items-center gap-5">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center tracking-tight">
-                            <Building2 className="w-8 h-8 mr-3 text-primary-500" />
-                            Manage Companies</h1>
-                        <p className="text-slate-500 text-sm mt-1">Configure recruitment partners and company profiles</p>
-                    </div>
-                </div>
+                <ModalTitle 
+                    icon={Building2} 
+                    title="Manage Companies" 
+                    description="Configure recruitment partners and company profiles" 
+                />
                 <div className="flex gap-4 w-full md:w-auto">
                     <div className="relative flex-1 md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -293,177 +424,36 @@ const ManageCompanies = () => {
                 </div>
             </div>
 
-            {/* Table Area */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden min-h-[400px]">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('name')}>
-                                    <div className="flex items-center">Company {renderSortIcon('name')}</div>
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('category')}>
-                                    <div className="flex items-center">Category {renderSortIcon('category')}</div>
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('drive_date')}>
-                                    <div className="flex items-center">Drive Date {renderSortIcon('drive_date')}</div>
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('salary_lpa')}>
-                                    <div className="flex items-center">Salary {renderSortIcon('salary_lpa')}</div>
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('on_off_campus')}>
-                                    <div className="flex items-center">Type {renderSortIcon('on_off_campus')}</div>
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Campus
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
-                                    Eligible
-                                </th>
-                                <th className="p-6 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {loading ? (
-                                [1, 2, 3, 4, 5].map(i => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan="8" className="p-6"><div className="h-12 bg-slate-50 dark:bg-slate-800 rounded-xl w-full" /></td>
-                                    </tr>
-                                ))
-                            ) : companies.length > 0 ? (
-                                companies.map((company) => (
-                                    <tr key={company.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="p-6 align-middle">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl group-hover:bg-primary-500/10 transition-colors">
-                                                    <Building2 className="w-5 h-5 text-slate-400 group-hover:text-primary-600" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-bold text-slate-900 dark:text-white">{company.name}</span>
-                                                        {company.website && (
-                                                            <a href={company.website} target="_blank" rel="noreferrer" className="text-primary-500 hover:scale-110 transition-transform">
-                                                                <ExternalLink className="w-3.5 h-3.5" />
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                    {company.on_off_campus === 'Off Campus' && company.cambus_venue && (
-                                                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                            <MapPin className="w-3 h-3" />
-                                                            {company.cambus_venue}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-6 align-middle">
-                                            {company.category && (
-                                                <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100 rounded-full dark:bg-blue-900/20 dark:border-blue-800/50">
-                                                    {company.category}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="p-6 align-middle">
-                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-                                                <Calendar className="w-4 h-4 text-slate-400" />
-                                                {formatDate(company.drive_date)}
-                                            </div>
-                                        </td>
-                                        <td className="p-6 align-middle">
-                                            <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
-                                                <IndianRupee className="w-4 h-4" />
-                                                {company.salary_lpa ? `${company.salary_lpa}` : 'Competitive'}
-                                            </div>
-                                        </td>
-                                        <td className="p-6 align-middle">
-                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.on_off_campus === 'On Campus'
-                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/50'
-                                                    : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50'
-                                                }`}>
-                                                {company.on_off_campus}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 align-middle">
-                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${company.campus === 'NEC'
-                                                    ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50' :
-                                                    company.campus === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50' :
-                                                    'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'
-                                                }`}>
-                                                {company.campus || 'Both'}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 align-middle text-center">
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 border-2 border-white dark:border-slate-900 shadow-sm">
-                                                    {eligibleCounts[company.id] || 0}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    onClick={() => navigate(`/admin/companies/${company.id}/eligible-students`)}
-                                                    className="p-2 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                                                    title="View Eligible Students"
-                                                >
-                                                    <Users className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => openEditModal(company)}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                    title="Edit Company"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(company.id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                    title="Delete Company"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="8" className="p-20 text-center">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-full mb-4">
-                                                <Info className="w-8 h-8 text-slate-300" />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Companies Found</h3>
-                                            <p className="text-slate-500">Try adjusting your search or add a new partner</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <Pagination 
-                    currentPage={page} 
-                    totalPages={totalPages} 
-                    onPageChange={(p) => setPage(p)} 
-                />
-            </div>
+            <DataTable
+                columns={columns}
+                data={companies}
+                loading={loading}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onLimitChange={(newLimit) => {
+                    setLimit(newLimit);
+                    setPage(1);
+                }}
+                limit={limit}
+                pagination={{
+                    page,
+                    totalPages,
+                    totalItems: total,
+                    onPageChange: setPage
+                }}
+            />
 
             {/* Modal Area (Popup Modal design from StudentDetails) */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
                         {/* Modal Header */}
                         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-primary-500/10 rounded-xl">
-                                    <Building2 className="w-6 h-6 text-primary-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{isEditMode ? 'Edit Company Profile' : 'Add New Company'}</h2>
-                                    <p className="text-sm text-slate-500">Professional profile for recruitment partners</p>
-                                </div>
-                            </div>
+                            <ModalTitle 
+                                icon={Building2} 
+                                title={isEditMode ? 'Edit Company Profile' : 'Add New Company'} 
+                                description="Professional profile for recruitment partners" 
+                            />
                             <button onClick={() => setIsModalOpen(false)} className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
                                 <X className="w-6 h-6" />
                             </button>
@@ -473,13 +463,13 @@ const ManageCompanies = () => {
                         <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                             <form id="company-form" onSubmit={handleSubmit} className="space-y-10">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {renderInput('Company Name', 'name')}
-                                    {renderInput('Website URL', 'website', 'url')}
+                                    {renderInput('Company Name', 'name', 'text', null, true)}
+                                    {renderInput('Website URL', 'website', 'url', null, true)}
                                     {renderInput('Drive Date', 'drive_date', 'date')}
-                                    {renderInput('Salary (LPA)', 'salary_lpa', 'text')}
-                                    {renderInput('Category', 'category', 'text', ['Product Based', 'Service Based', 'Startup', 'MNC', 'Other'])}
-                                    {renderInput('Institution Campus', 'campus', 'text', ['Both', 'NEC', 'NCT'])}
-                                    {renderInput('Placement Type', 'on_off_campus', 'text', ['On Campus', 'Off Campus'])}
+                                    {renderInput('Salary (LPA)', 'salary_lpa', 'text', null, true)}
+                                    {renderInput('Category', 'category', 'text', ['Product Based', 'Service Based', 'Startup', 'MNC', 'Other'], true)}
+                                    {renderInput('Institution Campus', 'campus', 'text', ['Both', 'NEC', 'NCT'], true)}
+                                    {renderInput('Placement Type', 'on_off_campus', 'text', ['On Campus', 'Off Campus'], true)}
 
                                     
                                     {formData.on_off_campus === 'Off Campus' && (
@@ -489,7 +479,7 @@ const ManageCompanies = () => {
                                     )}
 
                                     <div className="col-span-full flex flex-col gap-1.5">
-                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Company Description</label>
+                                        <InputLabel text="Company Description" />
                                         <textarea
                                             name="description"
                                             value={formData.description}
@@ -501,19 +491,19 @@ const ManageCompanies = () => {
 
                                     {/* Eligibility Values Section */}
                                     <div className="col-span-full mt-6">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] px-4">Detailed Eligibility Filters</h3>
-                                            <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-                                        </div>
+                                        <SectionTitle 
+                                            icon={Info} 
+                                            title="Eligibility Criteria" 
+                                            subtitle="Configure student filtering rules" 
+                                        />
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            {renderInput('Min 10th %', 'min_10th_percent', 'number')}
-                                            {renderInput('Min 12th %', 'min_12th_percent', 'number')}
-                                            {renderInput('Min UG CGPA', 'min_ug_cgpa', 'number')}
-                                            {renderInput('Max History Arrears', 'max_history_arrears', 'number')}
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">No Active Backlogs</label>
+                                            {renderInput('Min 10th %', 'min_10th_percent', 'number', null, true)}
+                                            {renderInput('Min 12th %', 'min_12th_percent', 'number', null, true)}
+                                            {renderInput('Min UG CGPA', 'min_ug_cgpa', 'number', null, true)}
+                                            {renderInput('Max History Arrears', 'max_history_arrears', 'number', null, true)}
+                                            <div className="flex flex-col gap-2">
+                                                <InputLabel icon={AlertCircle} text="No Active Backlogs" />
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -531,7 +521,7 @@ const ManageCompanies = () => {
                                                     {noBacklogs ? 'Strictly No Backlogs' : 'Allow Backlogs'}
                                                 </button>
                                             </div>
-                                            {renderInput('Gender Preference', 'gender_preference', 'select', ['All', 'Male', 'Female'])}
+                                            {renderInput('Gender Preference', 'gender_preference', 'select', ['All', 'Male', 'Female'], true)}
                                         </div>
                                     </div>
                                 </div>

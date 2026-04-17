@@ -88,7 +88,7 @@ export const fetchLeetCodeData = async (username) => {
     }`;
 
     const variables = { username };
-    console.log(`[FETCHER] Fetching ultra-extended data for: ${username}`);
+
 
     try {
         const response = await axios.post(

@@ -21,6 +21,10 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CampusFilter from '../../components/common/CampusFilter';
+import InputLabel from '../../components/common/InputLabel';
+import SectionTitle from '../../components/common/SectionTitle';
+import ModalTitle from '../../components/common/ModalTitle';
+import DataTable from '../../components/common/DataTable';
 
 const EligibleStudents = () => {
     const { id } = useParams();
@@ -32,6 +36,8 @@ const EligibleStudents = () => {
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('ASC');
     const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const [page, setPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -50,6 +56,118 @@ const EligibleStudents = () => {
         fetchData();
     }, [id]);
 
+    const columns = [
+        { 
+            header: 'REG NO', 
+            key: 'reg_no', 
+            sortable: true,
+            render: (val) => (
+                <span className="text-sm font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg group-hover:bg-primary-500/10 group-hover:text-primary-600 transition-colors">
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: 'STUDENT NAME', 
+            key: 'name', 
+            sortable: true,
+            render: (val, row) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-400 text-xs font-bold ring-4 ring-white dark:ring-slate-900 group-hover:scale-110 transition-all shadow-sm">
+                        {(val || '?').charAt(0)}
+                    </div>
+                    <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary-600 transition-colors">{val}</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{row.gender}</div>
+                    </div>
+                </div>
+            )
+        },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department',
+            render: (val) => (
+                <span className="text-sm font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg group-hover:bg-primary-500/10 group-hover:text-primary-600 transition-colors">
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: 'CAMPUS', 
+            key: 'cambus_details',
+            render: (val) => (
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                }`}>
+                    {val || 'N/A'}
+                </span>
+            )
+        },
+        { 
+            header: 'CGPA', 
+            key: 'ug_pg_cgpa', 
+            sortable: true,
+            className: 'text-center',
+            render: (val) => (
+                <span className="text-sm font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-lg">
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: '10TH / 12TH %', 
+            key: 'tenth_percentage',
+            className: 'text-center',
+            render: (val, row) => (
+                <div className="flex flex-col items-center gap-1">
+                    <div className="text-xs font-bold text-slate-700 dark:text-slate-300">10th: {val}%</div>
+                    <div className="text-[10px] font-semibold text-slate-400">12th: {row.twelfth_percentage}%</div>
+                </div>
+            )
+        },
+        { 
+            header: 'ARREARS', 
+            key: 'current_arrears',
+            className: 'text-center',
+            render: (val, row) => (
+                <div className="flex flex-col items-center gap-0.5">
+                    <div className={`text-xs font-bold ${val > 0 ? 'text-red-500' : 'text-slate-500'}`}>Current: {val}</div>
+                    <div className="text-[10px] font-semibold text-slate-400">History: {row.history_of_arrears}</div>
+                </div>
+            )
+        },
+        { 
+            header: 'STATUS', 
+            key: 'placed', 
+            sortable: true,
+            render: (val) => val === 'Yes' ? (
+                <span className="px-2.5 py-1 text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 rounded-full uppercase tracking-wider border border-green-200 dark:border-green-800/50">
+                    Already Placed
+                </span>
+            ) : (
+                <span className="px-2.5 py-1 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 rounded-full uppercase tracking-wider border border-blue-200 dark:border-blue-800/50">
+                    Available
+                </span>
+            )
+        },
+        { 
+            header: 'ACTIONS', 
+            key: 'id', 
+            className: 'text-right pr-6',
+            render: () => (
+                <button 
+                    onClick={() => navigate(`/admin/student-details`)}
+                    className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-xl transition-all"
+                    title="View Student"
+                >
+                    <UserCircle2 className="w-5 h-5" />
+                </button>
+            )
+        }
+    ];
+
     const filteredStudents = students.filter(s => {
         const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             s.reg_no.toLowerCase().includes(searchTerm.toLowerCase());
@@ -61,10 +179,18 @@ const EligibleStudents = () => {
     }).sort((a, b) => {
         const valA = a[sortBy] || '';
         const valB = b[sortBy] || '';
+        
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return sortOrder === 'ASC' ? valA - valB : valB - valA;
+        }
+        
         return sortOrder === 'ASC' 
             ? String(valA).localeCompare(String(valB)) 
             : String(valB).localeCompare(String(valA));
     });
+
+    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+    const paginatedStudents = filteredStudents.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
     const handleSort = (column) => {
         if (sortBy === column) {
@@ -109,17 +235,11 @@ const EligibleStudents = () => {
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <Building2 className="w-6 h-6 text-primary-500" />
-                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                {company.name}
-                            </h1>
-                        </div>
-                        <p className="text-slate-500 text-sm flex items-center gap-2">
-                             Eligible Students List &bull; {students.length} students found
-                        </p>
-                    </div>
+                    <ModalTitle 
+                        icon={Building2} 
+                        title={company.name} 
+                        description={`Eligible Students List • ${students.length} students found`} 
+                    />
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-bold text-sm shadow-sm active:scale-95">
@@ -137,7 +257,12 @@ const EligibleStudents = () => {
                 {/* Stats & Filters Card */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none">
-                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Eligibility Criteria</h3>
+                        <SectionTitle 
+                            icon={Trophy} 
+                            title="Requirement" 
+                            subtitle="Eligibility criteria" 
+                            className="mb-8"
+                        />
                         <div className="space-y-4">
                             <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50">
                                 <div className="flex items-center gap-3">
@@ -189,28 +314,49 @@ const EligibleStudents = () => {
 
                 {/* Table Card */}
                 <div className="lg:col-span-3 space-y-6">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden flex flex-col">
-                        {/* Table Controls */}
-                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex flex-col gap-6">
-                            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-                                <div className="w-full md:w-auto min-w-[300px]">
-                                    <CampusFilter 
-                                        selectedCampuses={selectedCampuses} 
-                                        onChange={setSelectedCampuses} 
-                                    />
+                    <DataTable
+                        columns={columns}
+                        data={paginatedStudents}
+                        loading={loading}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        emptyMessage="No matching students found"
+                        onLimitChange={(newLimit) => {
+                            setItemsPerPage(newLimit);
+                            setPage(1);
+                        }}
+                        limit={itemsPerPage}
+                        pagination={{
+                            page,
+                            totalPages,
+                            totalItems: filteredStudents.length,
+                            onPageChange: (newPage) => {
+                                setPage(newPage);
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                            }
+                        }}
+                        filters={
+                            <div className="flex flex-col gap-6">
+                                <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+                                    <div className="w-full md:w-auto min-w-[300px]">
+                                        <CampusFilter 
+                                            selectedCampuses={selectedCampuses} 
+                                            onChange={setSelectedCampuses} 
+                                        />
+                                    </div>
+                                    <div className="relative w-full md:w-80">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search students..." 
+                                            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-primary-500 text-sm transition-all shadow-inner outline-none font-bold"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="relative w-full md:w-80">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search students..." 
-                                        className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-primary-500 text-sm transition-all shadow-inner outline-none font-bold"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 items-center justify-between">
+                                <div className="flex flex-wrap gap-2 items-center justify-between">
                                 <div className="flex flex-wrap gap-2">
                                     {company.min_10th_percent && (
                                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider border border-slate-100 dark:border-slate-700">
@@ -242,140 +388,11 @@ const EligibleStudents = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100/50 dark:bg-slate-800 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-700/50">
-                                    Viewing {filteredStudents.length} of {students.length}
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Custom Data Table */}
-                        <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 z-10">
-                                    <tr>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group" onClick={() => handleSort('reg_no')}>
-                                            <div className="flex items-center gap-2 group-hover:text-primary-600 transition-colors">
-                                                Reg No <ArrowUpDown className="w-3 h-3" />
-                                            </div>
-                                        </th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group" onClick={() => handleSort('name')}>
-                                            <div className="flex items-center gap-2 group-hover:text-primary-600 transition-colors">
-                                                Student Name <ArrowUpDown className="w-3 h-3" />
-                                            </div>
-                                        </th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                            Department
-                                        </th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                            Campus
-                                        </th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group text-center" onClick={() => handleSort('ug_pg_cgpa')}>
-                                            <div className="flex items-center justify-center gap-2 group-hover:text-primary-600 transition-colors">
-                                                CGPA <ArrowUpDown className="w-3 h-3" />
-                                            </div>
-                                        </th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">10th / 12th %</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Arrears</th>
-                                        <th className="px-8 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider cursor-pointer group" onClick={() => handleSort('placed')}>
-                                            <div className="flex items-center gap-2 group-hover:text-primary-600 transition-colors">
-                                                Status
-                                                <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </th>
-                                        <th className="px-8 py-5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider pr-12">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {filteredStudents.length > 0 ? (
-                                        filteredStudents.map((student) => (
-                                            <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                                                <td className="px-8 py-6">
-                                                    <span className="text-sm font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg group-hover:bg-primary-500/10 group-hover:text-primary-600 transition-colors">
-                                                        {student.reg_no}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-400 text-xs font-bold ring-4 ring-white dark:ring-slate-900 group-hover:scale-110 transition-all shadow-sm">
-                                                            {student.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary-600 transition-colors">{student.name}</div>
-                                                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{student.gender}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <span className="text-sm font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg group-hover:bg-primary-500/10 group-hover:text-primary-600 transition-colors">
-                                                        {student.department}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
-                                                        student.cambus_details === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
-                                                        student.cambus_details === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
-                                                        'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                                                    }`}>
-                                                        {student.cambus_details || 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className="text-sm font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-lg">
-                                                        {student.ug_pg_cgpa}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <div className="text-xs font-bold text-slate-700 dark:text-slate-300">10th: {student.tenth_percentage}%</div>
-                                                        <div className="text-[10px] font-semibold text-slate-400">12th: {student.twelfth_percentage}%</div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <div className="flex flex-col items-center gap-0.5">
-                                                        <div className={`text-xs font-bold ${student.current_arrears > 0 ? 'text-red-500' : 'text-slate-500'}`}>Current: {student.current_arrears}</div>
-                                                        <div className="text-[10px] font-semibold text-slate-400">History: {student.history_of_arrears}</div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    {student.placed === 'Yes' ? (
-                                                        <span className="px-2.5 py-1 text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 rounded-full uppercase tracking-wider border border-green-200 dark:border-green-800/50">
-                                                            Already Placed
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2.5 py-1 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 rounded-full uppercase tracking-wider border border-blue-200 dark:border-blue-800/50">
-                                                            Available
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-8 py-6 text-right pr-12">
-                                                    <button 
-                                                        onClick={() => navigate(`/admin/student-details`)}
-                                                        className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-xl transition-all"
-                                                        title="View List"
-                                                    >
-                                                        <UserCircle2 className="w-5 h-5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="6" className="px-8 py-20 text-center">
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-full">
-                                                        <Search className="w-8 h-8 text-slate-300" />
-                                                    </div>
-                                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Matching Students</h3>
-                                                    <p className="text-slate-500 text-sm">Try adjusting your search criteria</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                        }
+                    />
                     </div>
-                </div>
             </div>
         </div>
     );

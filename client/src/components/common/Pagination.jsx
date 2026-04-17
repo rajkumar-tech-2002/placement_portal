@@ -35,12 +35,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
                     Next
                 </button>
             </div>
-            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-sm text-slate-500">
-                        Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> of <span className="font-bold text-slate-900 dark:text-white">{totalPages}</span>
-                    </p>
-                </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-end">
                 <div>
                     <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-2" aria-label="Pagination">
                         <button

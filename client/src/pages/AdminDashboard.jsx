@@ -219,7 +219,7 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between mb-8">
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wide">
                             <PieIcon className="w-5 h-5 text-emerald-500" />
-                            Willingness
+                            Placement Willingness
                         </h3>
                     </div>
                     <div className="flex-1 min-h-[300px] relative">
@@ -251,7 +251,7 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2 uppercase tracking-wide">
                         <Target className="w-5 h-5 text-purple-500" />
-                        Domains
+                        Willing Domains
                     </h3>
                     <div className="min-h-[300px]">
                         <Pie data={domainData} options={chartOptions} />

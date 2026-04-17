@@ -1,5 +1,6 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
+import InputLabel from './InputLabel';
 
 const CampusFilter = ({ selectedCampuses, onChange }) => {
     const campuses = ['NEC', 'NCT'];
@@ -14,10 +15,7 @@ const CampusFilter = ({ selectedCampuses, onChange }) => {
 
     return (
         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mt-1 flex items-center gap-1">
-                <Building2 className="w-3 h-3" />
-                Select Campus
-            </label>
+            <InputLabel icon={Building2} text="Select Campus" className="mb-0 mt-1" />
             <div className="flex gap-2">
                 {campuses.map(campus => (
                     <button

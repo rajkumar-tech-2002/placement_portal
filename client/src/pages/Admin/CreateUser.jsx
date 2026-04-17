@@ -25,6 +25,7 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CampusFilter from '../../components/common/CampusFilter';
+import DataTable from '../../components/common/DataTable';
 import Pagination from '../../components/common/Pagination';
 import Modal from '../../components/common/Modal';
 import departmentService from '../../services/department.service';
@@ -33,6 +34,9 @@ import userService from '../../services/user.service';
 import roleService from '../../services/role.service';
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { formatDate } from '../../utils/dateFormatter';
+import InputLabel from '../../components/common/InputLabel';
+import SectionTitle from '../../components/common/SectionTitle';
+import ModalTitle from '../../components/common/ModalTitle';
 
 const CreateUser = () => {
     const navigate = useNavigate();
@@ -306,6 +310,93 @@ const CreateUser = () => {
 
     // if (loading && viewMode === 'create') {
     //     return (
+    const columns = [
+        { 
+            header: 'USER PROFILE', 
+            key: 'name', 
+            sortable: true,
+            render: (val, row) => (
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/10 flex items-center justify-center text-primary-600 dark:text-primary-400 font-black text-sm shadow-sm">
+                            {(val || '?').charAt(0)}
+                        </div>
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${row.role === 'ADMIN' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                    </div>
+                    <div>
+                        <span className="block text-sm font-bold text-slate-900 dark:text-white leading-tight">{val}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{row.role}</span>
+                    </div>
+                </div>
+            )
+        },
+        { 
+            header: 'IDENTIFICATION', 
+            key: 'user_id', 
+            sortable: true,
+            render: (val, row) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white font-mono tracking-tight">
+                        {val}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Joined {formatDate(row.created_at)}</span>
+                </div>
+            )
+        },
+        { 
+            header: 'SYSTEM ROLE', 
+            key: 'role', 
+            sortable: true,
+            render: (val) => (
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${val === 'ADMIN'
+                    ? 'bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-900/20 dark:text-primary-400 dark:border-primary-800/50'
+                    : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50'
+                    }`}>
+                    {val}
+                </span>
+            )
+        },
+        { 
+            header: 'INSTITUTION', 
+            key: 'cambus', 
+            render: (val) => (
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                        'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50'
+                    }`}>
+                    {val || 'NEC'}
+                </span>
+            )
+        },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department',
+            render: (val) => <span className="text-sm font-bold text-slate-600 dark:text-slate-300 line-clamp-1">{val || 'N/A'}</span>
+        },
+        { 
+            header: 'ACTIONS', 
+            key: 'actions', 
+            className: 'text-right pr-8',
+            render: (_, row) => (
+                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                    <button
+                        onClick={() => handleEdit(row)}
+                        className="p-2.5 text-blue-500 hover:text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-all active:scale-90"
+                        title="Edit User"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => handleDelete(row.id)}
+                        className="p-2.5 text-red-400 hover:text-red-500 bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-all active:scale-90"
+                        title="Delete User"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )
+        }
+    ];
     const stats = {
         total: users.length,
         admins: users.filter(u => u.role === 'ADMIN').length,
@@ -317,13 +408,11 @@ const CreateUser = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
                 <div className="flex items-center gap-5">
-                    <div className="p-4 bg-primary-500/10 rounded-2xl">
-                        <Users className="w-8 h-8 text-primary-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
-                        <p className="text-slate-500 text-sm mt-1">Manage system administrators and coordinators</p>
-                    </div>
+                    <ModalTitle 
+                        icon={Users} 
+                        title="User Management" 
+                        description="Manage system administrators and coordinators"
+                    />
                 </div>
                 <div className="flex gap-4 w-full md:w-auto">
                     <button
@@ -357,15 +446,37 @@ const CreateUser = () => {
                 ))}
             </div>
 
-            {/* User List Table area */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden flex flex-col transition-all duration-500">
-                <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col gap-8">
+            <DataTable
+                columns={columns}
+                data={paginatedUsers}
+                loading={loading}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onLimitChange={(lvl) => {
+                    setLimit(lvl);
+                    setPage(1);
+                }}
+                limit={limit}
+                selectedIds={selectedIds}
+                onSelect={toggleSelect}
+                onSelectAll={toggleSelectAll}
+                pagination={{
+                    page,
+                    totalPages,
+                    totalItems: filteredUsers.length,
+                    onPageChange: (newPage) => {
+                        setPage(newPage);
+                        window.scrollTo({ top: 300, behavior: 'smooth' });
+                    }
+                }}
+                filters={
                     <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
                         <div className="flex items-center gap-6 w-full md:w-auto">
                             {selectedIds.length > 0 && (
                                 <button
                                     onClick={handleBulkDelete}
-                                    className="flex items-center gap-2 px-5 py-3 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-2xl transition-all font-bold text-xs shadow-sm animate-in fade-in slide-in-from-left-4 duration-300"
+                                    className="flex items-center gap-2 px-5 py-3 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-2xl transition-all font-bold text-xs shadow-sm"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Delete {selectedIds.length}
@@ -389,171 +500,24 @@ const CreateUser = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50 dark:bg-slate-900/50 px-6 py-3 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in duration-500">
-                                Viewing <span className="text-primary-600 dark:text-primary-400 mx-1">{filteredUsers.length}</span> of <span className="text-slate-900 dark:text-white ml-1">{stats.total} users</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50 dark:bg-slate-900/50 px-6 py-3 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm transition-all">
+                                Viewing <span className="text-primary-600 dark:text-primary-400 mx-1">{filteredUsers.length}</span> of <span className="text-slate-900 dark:text-white ml-1">{users.length} users</span>
                             </span>
                         </div>
                     </div>
-                    {/* Mobile Campus Filter */}
-                    <div className="lg:hidden w-full">
-                        <CampusFilter 
-                            selectedCampuses={selectedCampuses} 
-                            onChange={setSelectedCampuses} 
-                        />
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto overflow-y-auto max-h-[700px] custom-scrollbar">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-20">
-                            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
-                                <th className="p-4 w-12 text-center">
-                                    <button 
-                                        onClick={toggleSelectAll}
-                                        className="text-primary-600 dark:text-primary-400 hover:scale-110 transition-transform"
-                                    >
-                                        {paginatedUsers.length > 0 && selectedIds.length === paginatedUsers.length ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                                    </button>
-                                </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('name')}>
-                                    <div className="flex items-center">
-                                        User Profile {renderSortIcon('name')}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('user_id')}>
-                                    <div className="flex items-center">
-                                        Identification {renderSortIcon('user_id')}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors" onClick={() => handleSort('role')}>
-                                    <div className="flex items-center">
-                                        System Role {renderSortIcon('role')}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Institution</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Department</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-8">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="7" className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
-                                            <p className="text-slate-400 font-bold animate-pulse">Loading members directory...</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : paginatedUsers.length > 0 ? (
-                                paginatedUsers.map((user) => (
-                                    <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-300 group">
-                                        <td className="p-4 text-center">
-                                            <button 
-                                                onClick={() => toggleSelect(user.id)}
-                                                className={selectedIds.includes(user.id) ? "text-primary-600" : "text-slate-300 dark:text-slate-600"}
-                                            >
-                                                {selectedIds.includes(user.id) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                                            </button>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative">
-                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/10 flex items-center justify-center text-primary-600 dark:text-primary-400 font-black text-sm shadow-sm">
-                                                        {(user.name || '?').charAt(0)}
-                                                    </div>
-                                                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${user.role === 'ADMIN' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                                                </div>
-                                                <div>
-                                                    <span className="block text-sm font-bold text-slate-900 dark:text-white leading-tight">{user.name}</span>
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.role}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-900 dark:text-white font-mono tracking-tight">
-                                                    {user.user_id}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Joined {formatDate(user.created_at)}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${user.role === 'ADMIN'
-                                                ? 'bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-900/20 dark:text-primary-400 dark:border-primary-800/50'
-                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50'
-                                                }`}>
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${user.cambus === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
-                                                user.cambus === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
-                                                    'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50'
-                                                }`}>
-                                                {user.cambus || 'NEC'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-300 line-clamp-1">{user.department || 'N/A'}</span>
-                                        </td>
-                                        <td className="p-4 text-right pr-8">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    className="p-2.5 text-blue-500 hover:text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-all active:scale-90"
-                                                    title="Edit User"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="p-2.5 text-red-400 hover:text-red-500 bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-all active:scale-90"
-                                                    title="Delete User"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="7" className="p-32 text-center text-slate-400 font-medium">
-                                        <Users className="w-16 h-16 mx-auto mb-4 opacity-10" />
-                                        <p>No users found matching your search.</p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <Pagination 
-                    currentPage={page} 
-                    totalPages={totalPages} 
-                    onPageChange={setPage} 
-                />
-            </div>
+                }
+            />
 
             {/* Creation Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-200">
                         {/* Modal Header */}
                         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-primary-500/10 rounded-xl">
-                                    <UserPlus className="w-6 h-6 text-primary-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                                        {isEditMode ? 'Edit User Profile' : 'Add New System User'}
-                                    </h2>
-                                    <p className="text-slate-500 text-sm font-bold mt-0.5">
-                                        {isEditMode ? 'Update account details and permissions' : 'Configure a new access account for the system'}
-                                    </p>
-                                </div>
-                            </div>
+                            <ModalTitle 
+                                icon={UserPlus} 
+                                title={isEditMode ? 'Edit User Profile' : 'Add New System User'} 
+                                description={isEditMode ? 'Update account details and permissions' : 'Configure a new access account for the system'} 
+                            />
                             <button onClick={() => setIsModalOpen(false)} className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
                                 <X className="w-6 h-6" />
                             </button>
@@ -569,16 +533,13 @@ const CreateUser = () => {
                                     onChange={handleChange}
                                     options={staffList.map(s => ({ value: s.name, label: `${s.name} - ${s.cambus} (${s.department})` }))}
                                     placeholder="Select Staff Member"
-                                    icon={User}
                                     label="Staff Assignment"
+                                    required
                                 />
 
                                 {/* Institution Campus */}
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center">
-                                        <Building2 className="w-3.5 h-3.5 mr-2 text-primary-500" />
-                                        Home Campus
-                                    </label>
+                                    <InputLabel text="Home Campus" required />
                                     <div className="flex gap-4 p-1.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
                                         {['NEC', 'NCT', 'Both'].map((campus) => (
                                             <button
@@ -603,16 +564,13 @@ const CreateUser = () => {
                                     onChange={handleChange}
                                     options={filteredDepts.map(d => ({ value: d.department, label: `${d.cambus} - ${d.department}` }))}
                                     placeholder="Select Department"
-                                    icon={Shield}
                                     label="Primary Department"
+                                    required
                                 />
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-1 mb-1">
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center">
-                                            <Shield className="w-3.5 h-3.5 mr-2 text-primary-500" />
-                                            Account Role
-                                        </label>
+                                        <InputLabel text="Account Role" className="mb-0" required />
                                         <button
                                             type="button"
                                             onClick={() => setShowRoleInput(!showRoleInput)}
@@ -648,17 +606,13 @@ const CreateUser = () => {
                                         onChange={(e) => handleChange({ target: { name: 'role', value: e.target.value.toUpperCase() } })}
                                         options={roles.map(r => ({ value: r.role.toUpperCase(), label: r.role }))}
                                         placeholder="Select System Role"
-                                        icon={Shield}
                                         label=""  // Label handled in header above
                                     />
                                 </div>
 
                                 {/* User ID */}
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center">
-                                        <Fingerprint className="w-3.5 h-3.5 mr-2 text-primary-500" />
-                                        User ID
-                                    </label>
+                                    <InputLabel text="User ID" required />
                                     <input
                                         type="text"
                                         name="user_id"
@@ -672,10 +626,7 @@ const CreateUser = () => {
 
                                 {/* Password */}
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center">
-                                        <Lock className="w-3.5 h-3.5 mr-2 text-primary-500" />
-                                        Security Password
-                                    </label>
+                                    <InputLabel text="Security Password" required />
                                     <input
                                         type="password"
                                         name="password"

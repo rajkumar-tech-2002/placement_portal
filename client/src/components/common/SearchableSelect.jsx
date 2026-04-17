@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Check } from 'lucide-react';
+import { Search, ChevronDown, Check, X, User } from 'lucide-react';
+import InputLabel from './InputLabel';
 
 const SearchableSelect = ({ 
     options, 
@@ -41,12 +42,9 @@ const SearchableSelect = ({
     };
 
     return (
-        <div className={`relative space-y-2 ${className}`} ref={dropdownRef}>
+        <div className={`relative ${className}`} ref={dropdownRef}>
             {label && (
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1 flex items-center">
-                    {Icon && <Icon className="w-3 h-3 mr-1" />}
-                    {label}
-                </label>
+                <InputLabel icon={Icon} text={label} required={required} />
             )}
             
             <div 

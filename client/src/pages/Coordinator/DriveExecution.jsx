@@ -3,6 +3,9 @@ import { Briefcase, Calendar, Users, ChevronRight, Search, Building2, ExternalLi
 import * as driveService from '../../services/driveWillingness.service';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../../utils/dateFormatter';
+import InputLabel from '../../components/common/InputLabel';
+import SectionTitle from '../../components/common/SectionTitle';
+import ModalTitle from '../../components/common/ModalTitle';
 
 const DriveExecution = () => {
     const [drives, setDrives] = useState([]);
@@ -33,15 +36,11 @@ const DriveExecution = () => {
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
-                <div className="flex items-center gap-5">
-                    <div className="p-4 bg-primary-500/10 rounded-2xl">
-                        <Briefcase className="w-8 h-8 text-primary-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Drive Execution</h1>
-                        <p className="text-slate-500 text-sm mt-1">Select a drive to manage student eligibility and willingness</p>
-                    </div>
-                </div>
+                <ModalTitle 
+                    icon={Briefcase} 
+                    title="Drive Execution" 
+                    description="Select a drive to manage student eligibility and willingness" 
+                />
                 <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input

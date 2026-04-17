@@ -15,6 +15,8 @@ export const getAllStudents = async (req, res) => {
         const search = req.query.search || '';
         const sortBy = req.query.sortBy || 'created_at';
         const sortOrder = req.query.sortOrder || 'DESC';
+        const department = req.query.department || '';
+        const willing = req.query.willing || '';
         
         // Handle campus filter - could be a single string or an array
         let campus = req.query.campus || [];
@@ -23,8 +25,8 @@ export const getAllStudents = async (req, res) => {
         }
 
         const [students, total] = await Promise.all([
-            StudentPlacement.getAll(limit, offset, search, sortBy, sortOrder, campus),
-            StudentPlacement.countAll(search, campus)
+            StudentPlacement.getAll(limit, offset, search, sortBy, sortOrder, campus, department, willing),
+            StudentPlacement.countAll(search, campus, department, willing)
         ]);
 
         res.json({
@@ -198,6 +200,72 @@ export const importPlacementDetails = async (req, res) => {
             },
             errors: errors.length > 0 ? errors : undefined
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+export const savePlacementDetail = async (req, res) => {
+    try {
+        const { reg_no, company_name } = req.body;
+        if (!reg_no || !company_name) {
+            return res.status(400).json({ message: 'Register Number and Company Name are required' });
+        }
+        const result = await StudentPlacement.upsertPlacementDetail(req.body);
+        res.status(result.action === 'inserted' ? 201 : 200).json({
+            message: `Placement detail ${result.action} successfully`,
+            id: result.id
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getAllPlacementDetails = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        const sortBy = req.query.sortBy || 'created_at';
+        const sortOrder = req.query.sortOrder || 'DESC';
+        const department = req.query.department || '';
+        
+        // Handle campus filter
+        let campus = req.query.campus || [];
+        if (typeof campus === 'string') {
+            campus = [campus];
+        }
+
+        const [records, total] = await Promise.all([
+            StudentPlacement.getAllPlacementDetails(limit, offset, search, sortBy, sortOrder, campus, department),
+            StudentPlacement.countAllPlacementDetails(search, campus, department)
+        ]);
+
+        res.json({
+            data: records,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const updatePlacementDetail = async (req, res) => {
+    try {
+        await StudentPlacement.updatePlacementDetail(req.params.id, req.body);
+        res.json({ message: 'Placement record updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const deletePlacementDetail = async (req, res) => {
+    try {
+        await StudentPlacement.deletePlacementDetail(req.params.id);
+        res.json({ message: 'Placement record deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

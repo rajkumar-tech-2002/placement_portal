@@ -125,13 +125,24 @@ export const importDetails = async (req, res) => {
         let updated = 0;
         let errors = [];
 
+        const allowedColumns = await LeetCodeDetail.getTemplateColumns();
+
         for (const record of records) {
             try {
                 if (!record.reg_no) {
                     errors.push('Missing reg_no for a record');
                     continue;
                 }
-                const result = await LeetCodeDetail.upsert(record);
+
+                // Strictly filter the record data to only include allowed template columns
+                const filteredRecord = {};
+                allowedColumns.forEach(col => {
+                    if (record[col] !== undefined) {
+                        filteredRecord[col] = record[col];
+                    }
+                });
+
+                const result = await LeetCodeDetail.upsert(filteredRecord);
                 if (result.action === 'inserted') inserted++;
                 else updated++;
             } catch (err) {
@@ -165,9 +176,9 @@ export const syncAllDetails = async (req, res) => {
     }
 
     try {
-        // Fetch ALL details that have a profile URL
+        // Fetch ALL details that have either a username or a profile URL
         const details = await LeetCodeDetail.getAll();
-        const recordsToSync = details.filter(d => d.leet_code_profile);
+        const recordsToSync = details.filter(d => d.leetcode_username || d.leet_code_profile);
 
         if (recordsToSync.length === 0) {
             if (res) return res.json({ message: 'No records found with LeetCode profile URLs' });
@@ -185,8 +196,11 @@ export const syncAllDetails = async (req, res) => {
                 try {
                     // Throttling: Skip if synced less than 6 hours ago
                     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-                    if (record.last_synced_at && new Date(record.last_synced_at) > sixHoursAgo) {
-                        console.log(`[SYNC SKIP] ${record.reg_no} - Recently synced`);
+                    const isRecentlySynced = record.last_synced_at && new Date(record.last_synced_at) > sixHoursAgo;
+                    
+                    // IF it was synced recently AND it already has total_questions, skip it.
+                    // IF it doesn't have total_questions, sync it anyway to backfill data.
+                    if (isRecentlySynced && (record.total_questions > 0)) {
                         continue;
                     }
 
@@ -228,11 +242,12 @@ export const syncDetailById = async (req, res) => {
  * Helper to sync a single student record
  */
 async function syncSingleRecord(record) {
-    const username = extractUsername(record.leet_code_profile);
+    const username = record.leetcode_username || extractUsername(record.leet_code_profile);
+    
     if (!username) {
         await LeetCodeDetail.update(record.id, {
             sync_status: 'FAILED',
-            error_message: 'Invalid profile URL format',
+            error_message: 'Neither LeetCode Username nor Profile URL provided',
             updated_at: new Date()
         });
         return;
@@ -245,8 +260,8 @@ async function syncSingleRecord(record) {
         
         await LeetCodeDetail.update(record.id, {
             leetcode_username: data.username,
-            problem_solved_count: data.totalSolved,
             total_solved: data.totalSolved,
+            total_questions: data.totalQuestions,
             easy_solved: data.easySolved,
             medium_solved: data.mediumSolved,
             hard_solved: data.hardSolved,

@@ -9,7 +9,8 @@ import {
     ClipboardCheck,
     X,
     UserPlus,
-    Code2
+    Code2,
+    Trophy
 } from 'lucide-react';
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
@@ -21,6 +22,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
         { name: 'Student Details', path: '/admin/student-details', icon: Users },
         { name: 'LeetCode ', path: '/admin/leetcode-details', icon: Code2 },
         { name: 'Reports', path: '/admin/reports', icon: FileBarChart },
+        { name: 'Placement Entry', path: '/admin/placement-record', icon: Trophy },
         { name: 'Users', path: '/admin/create-user', icon: UserPlus },
     ];
 
@@ -33,6 +35,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
 
     const coordinatorLinks = [
         { name: 'Dashboard', path: '/coordinator/dashboard', icon: LayoutDashboard },
+        { name: 'Placement Entry', path: '/coordinator/placement-record', icon: Trophy },
         { name: 'LeetCode', path: '/coordinator/leetcode-details', icon: Code2 },
         { name: 'Drive Execution', path: '/coordinator/drives', icon: ClipboardCheck },
     ];
