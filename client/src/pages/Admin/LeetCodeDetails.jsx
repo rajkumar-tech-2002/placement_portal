@@ -62,6 +62,13 @@ const LeetCodeDetails = () => {
         user?.role === 'COORDINATOR' && user?.campus ? [user.campus] : []
     );
     const [isSyncingAll, setIsSyncingAll] = useState(false);
+    const [syncProgress, setSyncProgress] = useState({
+        isRunning: false,
+        total: 0,
+        synced: 0,
+        failed: 0,
+        lastRecord: null
+    });
     const [minSolved, setMinSolved] = useState(0);
     const [minRating, setMinRating] = useState(0);
     const [showEligibleOnly, setShowEligibleOnly] = useState(false);
@@ -77,6 +84,34 @@ const LeetCodeDetails = () => {
     useEffect(() => {
         fetchDetails();
     }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses, showEligibleOnly]);
+
+    // Poll for sync status
+    useEffect(() => {
+        let interval;
+        const checkStatus = async () => {
+            try {
+                const response = await api.get('/leetcode-details/sync-status');
+                setSyncProgress(prev => {
+                    if (!response.data.isRunning && prev.isRunning) {
+                        // Sync just finished
+                        fetchDetails();
+                        toast.success('Synchronization completed');
+                    }
+                    return response.data;
+                });
+            } catch (error) {
+                console.error('Failed to fetch sync status:', error);
+            }
+        };
+
+        // Initial check
+        checkStatus();
+
+        // If running, poll every 3 seconds
+        interval = setInterval(checkStatus, 3000);
+        
+        return () => clearInterval(interval);
+    }, [syncProgress.isRunning]);
 
     const fetchDetails = async () => {
         try {
@@ -109,6 +144,9 @@ const LeetCodeDetails = () => {
             setIsSyncingAll(true);
             const response = await api.post('/leetcode-details/sync-all');
             toast.success(response.data.message);
+            // Trigger an immediate status check
+            const statusResponse = await api.get('/leetcode-details/sync-status');
+            setSyncProgress(statusResponse.data);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Sync failed to start');
         } finally {
@@ -440,6 +478,51 @@ const LeetCodeDetails = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Sync Progress Bar */}
+            {syncProgress.isRunning && (
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-lg animate-in slide-in-from-top duration-500">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
+                                    <RefreshCw className="w-5 h-5 text-emerald-500 animate-spin" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Syncing LeetCode Data</h3>
+                                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                        Processing: <span className="text-primary-500 italic">{syncProgress.lastRecord || 'Starting...'}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-lg font-black text-slate-900 dark:text-white">
+                                    {Math.round((syncProgress.synced / syncProgress.total) * 100) || 0}%
+                                </span>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
+                                    {syncProgress.synced} / {syncProgress.total} STUDENTS
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="relative h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-700/50 p-0.5">
+                            <div 
+                                className="h-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-primary-500 rounded-full transition-all duration-1000 ease-out relative"
+                                style={{ width: `${(syncProgress.synced / syncProgress.total) * 100}%` }}
+                            >
+                                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                            </div>
+                        </div>
+
+                        {syncProgress.failed > 0 && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 rounded-lg w-fit">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">{syncProgress.failed} records failed to sync</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Table Area Section */}
             <DataTable 

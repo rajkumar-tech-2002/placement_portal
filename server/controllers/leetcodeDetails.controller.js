@@ -167,10 +167,17 @@ export const importDetails = async (req, res) => {
 
 // --- SYNC LOGIC ---
 
-let isSyncRunning = false;
+let syncProgress = {
+    isRunning: false,
+    total: 0,
+    synced: 0,
+    failed: 0,
+    lastRecord: null,
+    startTime: null
+};
 
 export const syncAllDetails = async (req, res) => {
-    if (isSyncRunning) {
+    if (syncProgress.isRunning) {
         if (res) return res.status(400).json({ message: 'Sync already in progress' });
         return;
     }
@@ -186,7 +193,15 @@ export const syncAllDetails = async (req, res) => {
         }
 
         // Start background sync
-        isSyncRunning = true;
+        syncProgress = {
+            isRunning: true,
+            total: recordsToSync.length,
+            synced: 0,
+            failed: 0,
+            lastRecord: null,
+            startTime: new Date()
+        };
+        
         if (res) res.json({ message: 'Sync started in background', total: recordsToSync.length });
 
         // Background loop
@@ -205,17 +220,20 @@ export const syncAllDetails = async (req, res) => {
                     }
 
                     await syncSingleRecord(record);
+                    syncProgress.synced++;
+                    syncProgress.lastRecord = `${record.name} (${record.reg_no})`;
                     await delay(3000); // 3s delay between students
                 } catch (err) {
+                    syncProgress.failed++;
                     console.error(`[SYNC FAILED] ${record.reg_no}: ${err.message}`);
                 }
             }
-            isSyncRunning = false;
+            syncProgress.isRunning = false;
             console.log('[SYNC COMPLETED]');
         })();
 
     } catch (error) {
-        isSyncRunning = false;
+        syncProgress.isRunning = false;
         if (res) res.status(500).json({ message: error.message });
         else console.error(`[CRON SYNC FAILED] ${error.message}`);
     }
@@ -320,5 +338,5 @@ export const getEligibleDetails = async (req, res) => {
 };
 
 export const getSyncStatus = (req, res) => {
-    res.json({ isSyncRunning });
+    res.json(syncProgress);
 };
