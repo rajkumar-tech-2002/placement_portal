@@ -59,7 +59,7 @@ const LeetCodeDetails = () => {
     const [sortOrder, setSortOrder] = useState('ASC');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedCampuses, setSelectedCampuses] = useState(
-        user?.role === 'COORDINATOR' && user?.campus ? [user.campus] : []
+        user?.campus !== 'Both' ? [user?.campus] : []
     );
     const [isSyncingAll, setIsSyncingAll] = useState(false);
     const [syncProgress, setSyncProgress] = useState({
@@ -80,6 +80,12 @@ const LeetCodeDetails = () => {
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    useEffect(() => {
+        if (user?.campus !== 'Both') {
+            setSelectedCampuses([user?.campus]);
+        }
+    }, [user]);
 
     useEffect(() => {
         fetchDetails();
@@ -553,7 +559,7 @@ const LeetCodeDetails = () => {
                                     className="pl-11 pr-4 py-2.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold text-sm" 
                                 />
                             </div>
-                            {user?.role !== 'COORDINATOR' && (
+                            {user?.campus === 'Both' && (
                                 <div className="w-full md:w-56">
                                     <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
                                 </div>

@@ -37,9 +37,11 @@ import { formatDate } from '../../utils/dateFormatter';
 import InputLabel from '../../components/common/InputLabel';
 import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
+import { useAuth } from '../../context/AuthContext';
 
 const CreateUser = () => {
     const navigate = useNavigate();
+    const { user: authUser } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [departments, setDepartments] = useState([]);
@@ -51,7 +53,7 @@ const CreateUser = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('ASC');
     const [selectedIds, setSelectedIds] = useState([]);
@@ -64,7 +66,7 @@ const CreateUser = () => {
         password: '',
         role: 'COORDINATOR',
         department: '',
-        cambus: 'NEC'
+        campus: authUser?.campus !== 'Both' ? authUser?.campus : 'NEC'
     });
 
     const fetchData = async () => {
@@ -87,6 +89,12 @@ const CreateUser = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (authUser?.campus !== 'Both') {
+            setSelectedCampuses([authUser?.campus]);
+        }
+    }, [authUser]);
 
     useEffect(() => {
         fetchData();
@@ -113,7 +121,7 @@ const CreateUser = () => {
                     ...prev,
                     name: value,
                     department: selectedStaff.department || prev.department,
-                    cambus: selectedStaff.cambus || prev.cambus
+                    campus: selectedStaff.campus || prev.campus
                 }));
             }
         }
@@ -143,7 +151,7 @@ const CreateUser = () => {
                 password: '',
                 role: 'COORDINATOR',
                 department: '',
-                cambus: 'NEC'
+                campus: authUser?.campus !== 'Both' ? authUser?.campus : 'NEC'
             });
             setIsEditMode(false);
             fetchUsers();
@@ -271,8 +279,8 @@ const CreateUser = () => {
             
             const matchesCampus = 
                 selectedCampuses.length === 0 || 
-                selectedCampuses.includes(user.cambus) ||
-                user.cambus === 'Both';
+                selectedCampuses.includes(user.campus) ||
+                user.campus === 'Both';
 
             return matchesSearch && matchesCampus;
         })
@@ -305,7 +313,7 @@ const CreateUser = () => {
     };
 
     const filteredDepts = departments.filter(d =>
-        formData.cambus === 'Both' || d.cambus === formData.cambus
+        formData.campus === 'Both' || d.campus === formData.campus
     );
 
     // if (loading && viewMode === 'create') {
@@ -321,7 +329,7 @@ const CreateUser = () => {
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/10 flex items-center justify-center text-primary-600 dark:text-primary-400 font-black text-sm shadow-sm">
                             {(val || '?').charAt(0)}
                         </div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${row.role === 'ADMIN' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${row.role === 'ADMIN' || row.role === 'SUPER ADMIN' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                     </div>
                     <div>
                         <span className="block text-sm font-bold text-slate-900 dark:text-white leading-tight">{val}</span>
@@ -348,7 +356,7 @@ const CreateUser = () => {
             key: 'role', 
             sortable: true,
             render: (val) => (
-                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${val === 'ADMIN'
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${val === 'ADMIN' || val === 'SUPER ADMIN'
                     ? 'bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-900/20 dark:text-primary-400 dark:border-primary-800/50'
                     : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50'
                     }`}>
@@ -358,7 +366,7 @@ const CreateUser = () => {
         },
         { 
             header: 'INSTITUTION', 
-            key: 'cambus', 
+            key: 'campus', 
             render: (val) => (
                 <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
                     val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
@@ -399,7 +407,7 @@ const CreateUser = () => {
     ];
     const stats = {
         total: users.length,
-        admins: users.filter(u => u.role === 'ADMIN').length,
+        admins: users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER ADMIN').length,
         coordinators: users.filter(u => u.role === 'COORDINATOR').length
     };
 
@@ -492,12 +500,14 @@ const CreateUser = () => {
                                     className="pl-14 pr-8 py-4 w-full rounded-2xl border-none bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500/50 transition-all outline-none font-bold text-sm shadow-inner"
                                 />
                             </div>
-                            <div className="hidden lg:block">
-                                <CampusFilter 
-                                    selectedCampuses={selectedCampuses} 
-                                    onChange={setSelectedCampuses} 
-                                />
-                            </div>
+                            {authUser?.campus === 'Both' && (
+                                <div className="hidden lg:block">
+                                    <CampusFilter 
+                                        selectedCampuses={selectedCampuses} 
+                                        onChange={setSelectedCampuses} 
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50 dark:bg-slate-900/50 px-6 py-3 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm transition-all">
@@ -531,7 +541,7 @@ const CreateUser = () => {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    options={staffList.map(s => ({ value: s.name, label: `${s.name} - ${s.cambus} (${s.department})` }))}
+                                    options={staffList.map(s => ({ value: s.name, label: `${s.name} - ${s.campus} (${s.department})` }))}
                                     placeholder="Select Staff Member"
                                     label="Staff Assignment"
                                     required
@@ -541,12 +551,12 @@ const CreateUser = () => {
                                 <div className="space-y-3">
                                     <InputLabel text="Home Campus" required />
                                     <div className="flex gap-4 p-1.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                        {['NEC', 'NCT', 'Both'].map((campus) => (
+                                        {(authUser?.campus === 'Both' ? ['NEC', 'NCT', 'Both'] : [authUser?.campus]).map((campus) => (
                                             <button
                                                 key={campus}
                                                 type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, cambus: campus }))}
-                                                className={`flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${formData.cambus === campus
+                                                onClick={() => setFormData(prev => ({ ...prev, campus: campus }))}
+                                                className={`flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${formData.campus === campus
                                                     ? 'bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700'
                                                     : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                                                     }`}
@@ -562,7 +572,7 @@ const CreateUser = () => {
                                     name="department"
                                     value={formData.department}
                                     onChange={handleChange}
-                                    options={filteredDepts.map(d => ({ value: d.department, label: `${d.cambus} - ${d.department}` }))}
+                                    options={filteredDepts.map(d => ({ value: d.department, label: `${d.campus} - ${d.department}` }))}
                                     placeholder="Select Department"
                                     label="Primary Department"
                                     required

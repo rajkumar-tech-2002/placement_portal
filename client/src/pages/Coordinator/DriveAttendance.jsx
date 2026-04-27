@@ -45,7 +45,7 @@ const DriveAttendance = () => {
                 studentRegNo: student.reg_no,
                 status,
                 department: student.department,
-                cambus_details: student.cambus_details
+                campus_details: student.campus_details
             });
             
             // Update local state

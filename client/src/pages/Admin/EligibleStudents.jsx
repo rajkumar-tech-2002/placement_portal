@@ -25,6 +25,7 @@ import InputLabel from '../../components/common/InputLabel';
 import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
 import DataTable from '../../components/common/DataTable';
+import { useAuth } from '../../context/AuthContext';
 
 const EligibleStudents = () => {
     const { id } = useParams();
@@ -35,9 +36,16 @@ const EligibleStudents = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('ASC');
-    const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const { user: authUser } = useAuth();
+    const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    useEffect(() => {
+        if (authUser?.campus !== 'Both') {
+            setSelectedCampuses([authUser?.campus]);
+        }
+    }, [authUser]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -94,14 +102,14 @@ const EligibleStudents = () => {
         },
         { 
             header: 'CAMPUS', 
-            key: 'cambus_details',
+            key: 'campus_details',
             render: (val) => (
                 <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
                     val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
                     val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
                     'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 }`}>
-                    {val || 'N/A'}
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
                 </span>
             )
         },
@@ -173,7 +181,7 @@ const EligibleStudents = () => {
                             s.reg_no.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchesCampus = selectedCampuses.length === 0 || 
-                            selectedCampuses.includes(s.cambus_details);
+                            selectedCampuses.includes(s.campus_details);
         
         return matchesSearch && matchesCampus;
     }).sort((a, b) => {
@@ -339,12 +347,14 @@ const EligibleStudents = () => {
                         filters={
                             <div className="flex flex-col gap-6">
                                 <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-                                    <div className="w-full md:w-auto min-w-[300px]">
-                                        <CampusFilter 
-                                            selectedCampuses={selectedCampuses} 
-                                            onChange={setSelectedCampuses} 
-                                        />
-                                    </div>
+                                    {authUser?.campus === 'Both' && (
+                                        <div className="w-full md:w-auto min-w-[300px]">
+                                            <CampusFilter 
+                                                selectedCampuses={selectedCampuses} 
+                                                onChange={setSelectedCampuses} 
+                                            />
+                                        </div>
+                                    )}
                                     <div className="relative w-full md:w-80">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input 

@@ -1,57 +1,69 @@
 import pool from '../config/db.config.js';
 
 class Report {
-    static async getOverallStats() {
+    static async getOverallStats(campus) {
+        const isBoth = campus === 'Both';
+        const campusFilter = isBoth ? '' : ` WHERE campus_details = '${campus}'`;
+        const campusFilterWhere = isBoth ? '' : ` AND campus_details = '${campus}'`;
+        
+        // Drive filter is different because it's from companies table
+        const driveCampusFilter = isBoth ? '' : ` WHERE campus = '${campus}' OR campus = 'Both'`;
+
         // Overall Student & Placement Stats
         const [[overall]] = await pool.query(`
             SELECT 
-                (SELECT COUNT(*) FROM student_placement_master) as total_students,
-                (SELECT COUNT(DISTINCT reg_no) FROM placement_details WHERE placed = 'Yes') as placed_students,
-                (SELECT IFNULL(AVG(salary), 0) FROM placement_details WHERE placed = 'Yes' AND salary > 0) as avg_package,
-                (SELECT IFNULL(MAX(salary), 0) FROM placement_details WHERE placed = 'Yes') as highest_package
+                (SELECT COUNT(*) FROM student_placement_master ${isBoth ? '' : ` WHERE campus_details = '${campus}'`}) as total_students,
+                (SELECT COUNT(DISTINCT s.reg_no) FROM placement_details p JOIN student_placement_master s ON p.reg_no = s.reg_no WHERE p.placed = 'Yes' ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}) as placed_students,
+                (SELECT IFNULL(AVG(p.salary), 0) FROM placement_details p JOIN student_placement_master s ON p.reg_no = s.reg_no WHERE p.placed = 'Yes' AND p.salary > 0 ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}) as avg_package,
+                (SELECT IFNULL(MAX(p.salary), 0) FROM placement_details p JOIN student_placement_master s ON p.reg_no = s.reg_no WHERE p.placed = 'Yes' ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}) as highest_package
         `);
 
-        // Willingness Stats (Willing vs Not Willing)
+        // Willingness Stats
         const [[willingness]] = await pool.query(`
             SELECT 
                 SUM(CASE WHEN LOWER(willing) = 'willing' THEN 1 ELSE 0 END) as willing,
                 SUM(CASE WHEN LOWER(willing) = 'not willing' THEN 1 ELSE 0 END) as not_willing
             FROM student_placement_master
+            ${isBoth ? '' : ` WHERE campus_details = '${campus}'`}
         `);
 
-        // Domain Stats (Grouping by willing_domain)
+        // Domain Stats
         const [domains] = await pool.query(`
             SELECT willing_domain as domain, COUNT(*) as count
             FROM student_placement_master
-            WHERE willing_domain IS NOT NULL AND willing_domain != ''
+            WHERE (willing_domain IS NOT NULL AND willing_domain != '')
+            ${isBoth ? '' : ` AND campus_details = '${campus}'`}
             GROUP BY willing_domain
             ORDER BY count DESC
             LIMIT 5
         `);
 
-        // Drive Stats (Upcoming vs Completed from companies table)
+        // Drive Stats
         const [[drives]] = await pool.query(`
             SELECT 
                 COUNT(*) as total_drives,
                 SUM(CASE WHEN drive_date >= CURDATE() THEN 1 ELSE 0 END) as upcoming_drives,
                 SUM(CASE WHEN drive_date < CURDATE() THEN 1 ELSE 0 END) as completed_drives
             FROM companies
+            ${driveCampusFilter}
         `);
 
         // Monthly Placement Trend
         const [trends] = await pool.query(`
-            SELECT DATE_FORMAT(created_at, '%b %Y') as month, COUNT(*) as count
-            FROM placement_details
-            WHERE placed = 'Yes' AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            SELECT DATE_FORMAT(p.created_at, '%b %Y') as month, COUNT(*) as count
+            FROM placement_details p
+            JOIN student_placement_master s ON p.reg_no = s.reg_no
+            WHERE p.placed = 'Yes' AND p.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}
             GROUP BY month
-            ORDER BY MIN(created_at) ASC
+            ORDER BY MIN(p.created_at) ASC
         `);
 
         return {
             ...overall,
-            willingness,
+            willingness: willingness || { willing: 0, not_willing: 0 },
             domains,
-            drive_stats: drives,
+            drive_stats: drives || { total_drives: 0, upcoming_drives: 0, completed_drives: 0 },
             trends
         };
     }
@@ -88,7 +100,7 @@ class Report {
         }
 
         if (campus && campus.length > 0) {
-            const campusClause = ` AND cambus_details IN (?)`;
+            const campusClause = ` AND campus_details IN (?)`;
             query += campusClause;
             countQuery += campusClause;
             params.push(campus);
@@ -108,7 +120,7 @@ class Report {
             params.push(domain);
         }
 
-        query += ` ORDER BY cambus_details ASC, department ASC, name ASC`;
+        query += ` ORDER BY campus_details ASC, department ASC, name ASC`;
 
         if (limit !== undefined && offset !== undefined) {
             query += ` LIMIT ?, ?`;
@@ -125,7 +137,7 @@ class Report {
     }
 
     static async getWillingFilterOptions() {
-        const [campuses] = await pool.query(`SELECT DISTINCT cambus_details as value FROM student_placement_master WHERE cambus_details IS NOT NULL AND cambus_details != ''`);
+        const [campuses] = await pool.query(`SELECT DISTINCT campus_details as value FROM student_placement_master WHERE campus_details IS NOT NULL AND campus_details != ''`);
         const [departments] = await pool.query(`SELECT DISTINCT department as value FROM student_placement_master WHERE department IS NOT NULL AND department != ''`);
         const [domains] = await pool.query(`SELECT DISTINCT willing_domain as value FROM student_placement_master WHERE willing_domain IS NOT NULL AND willing_domain != ''`);
         const [companies] = await pool.query(`SELECT DISTINCT company_name as value FROM placement_details WHERE placed = 'Yes' AND company_name IS NOT NULL AND company_name != ''`);
@@ -163,7 +175,7 @@ class Report {
         }
 
         if (campus && campus.length > 0) {
-            const campusClause = ` AND s.cambus_details IN (?)`;
+            const campusClause = ` AND s.campus_details IN (?)`;
             query += campusClause;
             countQuery += campusClause;
             params.push(campus);
@@ -183,7 +195,7 @@ class Report {
             params.push(company);
         }
 
-        query += ` ORDER BY s.cambus_details ASC, s.department ASC, s.name ASC`;
+        query += ` ORDER BY s.campus_details ASC, s.department ASC, s.name ASC`;
 
         if (limit !== undefined && offset !== undefined) {
             query += ` LIMIT ?, ?`;
@@ -200,29 +212,35 @@ class Report {
     }
 
 
-    static async getCompanyWiseReport() {
+    static async getCompanyWiseReport(campus = 'Both') {
+        const isBoth = campus === 'Both';
         const [rows] = await pool.query(`
-            SELECT company_name as name, COUNT(*) as count, AVG(salary) as avg_package
-            FROM placement_details
-            WHERE placed = 'Yes' AND company_name IS NOT NULL AND company_name != ''
-            GROUP BY company_name
+            SELECT p.company_name as name, COUNT(*) as count, AVG(p.salary) as avg_package
+            FROM placement_details p
+            JOIN student_placement_master s ON p.reg_no = s.reg_no
+            WHERE p.placed = 'Yes' AND p.company_name IS NOT NULL AND p.company_name != ''
+            ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}
+            GROUP BY p.company_name
             ORDER BY count DESC
         `);
         return rows;
     }
 
-    static async getPackageDistribution() {
+    static async getPackageDistribution(campus = 'Both') {
+        const isBoth = campus === 'Both';
         const [rows] = await pool.query(`
             SELECT 
                 CASE 
-                    WHEN salary < 3 THEN '< 3 LPA'
-                    WHEN salary >= 3 AND salary < 5 THEN '3 - 5 LPA'
-                    WHEN salary >= 5 AND salary < 8 THEN '5 - 8 LPA'
+                    WHEN p.salary < 3 THEN '< 3 LPA'
+                    WHEN p.salary >= 3 AND p.salary < 5 THEN '3 - 5 LPA'
+                    WHEN p.salary >= 5 AND p.salary < 8 THEN '5 - 8 LPA'
                     ELSE '8+ LPA'
                 END as range_label,
                 COUNT(*) as count
-            FROM placement_details
-            WHERE placed = 'Yes' AND salary > 0
+            FROM placement_details p
+            JOIN student_placement_master s ON p.reg_no = s.reg_no
+            WHERE p.placed = 'Yes' AND p.salary > 0
+            ${isBoth ? '' : ` AND s.campus_details = '${campus}'`}
             GROUP BY range_label
             ORDER BY count DESC
         `);

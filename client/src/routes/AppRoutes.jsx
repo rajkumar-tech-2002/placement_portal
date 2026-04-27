@@ -24,7 +24,7 @@ const AppRoutes = () => {
             <Route path="/login" element={<Login />} />
             
             {/* Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['SUPER ADMIN','ADMIN']} />}>
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="companies" element={<ManageCompanies />} />
@@ -38,7 +38,7 @@ const AppRoutes = () => {
             </Route>
  
             {/* Coordinator Routes */}
-            <Route path="/coordinator" element={<ProtectedRoute allowedRoles={['COORDINATOR', 'ADMIN']} />}>
+            <Route path="/coordinator" element={<ProtectedRoute allowedRoles={['SUPER ADMIN','COORDINATOR', 'ADMIN']} />}>
                 <Route index element={<Navigate to="/coordinator/dashboard" replace />} />
                 <Route path="dashboard" element={<CoordinatorDashboard />} />
                 <Route path="drives" element={<DriveExecution />} />

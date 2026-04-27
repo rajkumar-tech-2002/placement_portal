@@ -71,12 +71,12 @@ const WillingStudents = () => {
         },
         { 
             header: 'CAMPUS', 
-            key: 'cambus_details',
+            key: 'campus_details',
             sortable: true,
             render: (val) => (
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
                     <MapPin className="w-3.5 h-3.5 text-primary-500" />
-                    {val}
+                    {val === 'Both' ? 'NEC, NCT' : val}
                 </div>
             )
         },
@@ -134,7 +134,7 @@ const WillingStudents = () => {
             s.student_reg_no,
             s.name,
             s.department,
-            s.cambus_details,
+            s.campus_details,
             s.personal_email,
             s.student_mobile,
             s.ug_pg_cgpa

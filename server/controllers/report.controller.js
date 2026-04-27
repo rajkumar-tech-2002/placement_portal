@@ -3,7 +3,8 @@ import { successResponse, errorResponse } from '../utils/response.js';
 
 export const getPerformanceReport = async (req, res) => {
     try {
-        const stats = await Report.getOverallStats();
+        const { campus, role } = req.user;
+        const stats = await Report.getOverallStats(campus);
         return successResponse(res, { stats });
     } catch (error) {
         return errorResponse(res, error.message);
@@ -89,7 +90,7 @@ export const getPlacedReport = async (req, res) => {
 
 export const getCompanyWiseReport = async (req, res) => {
     try {
-        const report = await Report.getCompanyWiseReport();
+        const report = await Report.getCompanyWiseReport(req.user.campus);
         return successResponse(res, { report });
     } catch (error) {
         return errorResponse(res, error.message);
@@ -98,7 +99,7 @@ export const getCompanyWiseReport = async (req, res) => {
 
 export const getPackageDistReport = async (req, res) => {
     try {
-        const report = await Report.getPackageDistribution();
+        const report = await Report.getPackageDistribution(req.user.campus);
         return successResponse(res, { report });
     } catch (error) {
         return errorResponse(res, error.message);

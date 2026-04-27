@@ -25,7 +25,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState('ADMIN');
+    const [selectedRole, setSelectedRole] = useState('SUPER ADMIN');
     const [selectedCampus, setSelectedCampus] = useState('NEC'); // NEC, NCT
     const [availableRoles, setAvailableRoles] = useState(['ADMIN']);
 
@@ -47,7 +47,7 @@ const Login = () => {
         fetchRoles();
 
         if (user) {
-            if (user.role === 'ADMIN') navigate('/admin/dashboard');
+            if (user.role === 'ADMIN' || user.role === 'SUPER ADMIN') navigate('/admin/dashboard');
             else if (user.role === 'COORDINATOR') navigate('/coordinator/dashboard');
             else navigate('/student/dashboard');
         }
@@ -59,7 +59,7 @@ const Login = () => {
         setError('');
 
         try {
-            const data = await authLogin(userId, password, selectedRole === 'ADMIN' ? 'Both' : selectedCampus);
+            const data = await authLogin(userId, password, selectedRole === 'SUPER ADMIN' ? 'Both' : selectedCampus);
             
             // Check if the actual role matches the selected role
             if (data.user.role !== selectedRole) {
@@ -70,7 +70,7 @@ const Login = () => {
 
             login(data.user);
 
-            if (data.user.role === 'ADMIN') navigate('/admin/dashboard');
+            if (data.user.role === 'ADMIN' || data.user.role === 'SUPER ADMIN') navigate('/admin/dashboard');
             else if (data.user.role === 'COORDINATOR') navigate('/coordinator/dashboard');
             else navigate('/student/dashboard');
         } catch (err) {
@@ -157,8 +157,8 @@ const Login = () => {
                         </div>
                     </div>
  
-                    {/* Campus Selection - Show for Student/Coordinator */}
-                    {selectedRole !== 'ADMIN' && (
+                    {/* Campus Selection - Show for Student/Coordinator/Admin (except Super Admin) */}
+                    {selectedRole !== 'SUPER ADMIN' && (
                         <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
                             <InputLabel icon={Building2} text="Select Campus" />
                             <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">

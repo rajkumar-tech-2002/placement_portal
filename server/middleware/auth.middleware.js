@@ -29,14 +29,16 @@ export const verifyToken = (req, res, next) => {
 };
 
 export const isAdmin = (req, res, next) => {
-    if (req.userRole !== 'ADMIN') {
+    const role = req.userRole?.toUpperCase();
+    if (role !== 'ADMIN' && role !== 'SUPER ADMIN') {
         return res.status(403).json({ success: false, message: 'Require Admin Role' });
     }
     next();
 };
 
 export const isCoordinator = (req, res, next) => {
-    if (req.userRole !== 'COORDINATOR' && req.userRole !== 'ADMIN') {
+    const role = req.userRole?.toUpperCase();
+    if (role !== 'COORDINATOR' && role !== 'ADMIN' && role !== 'SUPER ADMIN') {
         return res.status(403).json({ success: false, message: 'Require Coordinator or Admin Role' });
     }
     next();

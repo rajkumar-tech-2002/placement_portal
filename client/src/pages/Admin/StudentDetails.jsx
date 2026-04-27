@@ -22,14 +22,18 @@ import CampusFilter from '../../components/common/CampusFilter';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
 import InputLabel from '../../components/common/InputLabel';
-import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
+import SectionTitle from '../../components/common/SectionTitle';
+import { useAuth } from '../../context/AuthContext';
 
 const StudentDetails = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIds, setSelectedIds] = useState([]);
+    const { user: authUser } = useAuth();
+    const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [activeTab, setActiveTab] = useState('basic');
@@ -43,7 +47,6 @@ const StudentDetails = () => {
     const [sortBy, setSortBy] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [selectedCampuses, setSelectedCampuses] = useState([]);
 
     const tabs = [
         { id: 'basic', label: 'Basic & Placement' },
@@ -51,6 +54,12 @@ const StudentDetails = () => {
         { id: 'personal', label: 'Personal' },
         { id: 'skills', label: 'Skills & Others' }
     ];
+
+    useEffect(() => {
+        if (authUser?.campus !== 'Both') {
+            setSelectedCampuses([authUser?.campus]);
+        }
+    }, [authUser]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -122,14 +131,14 @@ const StudentDetails = () => {
         },
         { 
             header: 'CAMPUS', 
-            key: 'cambus_details',
+            key: 'campus_details',
             render: (val) => (
                 <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg border uppercase tracking-wider ${
                     val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
                     val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
                     'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 }`}>
-                    {val || 'N/A'}
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
                 </span>
             )
         },
@@ -413,9 +422,11 @@ const StudentDetails = () => {
                                 className="pl-12 pr-4 py-3 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold text-sm shadow-sm" 
                             />
                         </div>
-                        <div className="w-full md:w-72">
-                            <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
-                        </div>
+                        {authUser?.campus === 'Both' && (
+                            <div className="w-full md:w-72">
+                                <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
+                            </div>
+                        )}
                     </div>
                 }
                 pagination={{
@@ -460,7 +471,7 @@ const StudentDetails = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                     {renderInput('Registration Number', 'reg_no', 'text', null, true)}
                                     {renderInput('Full Name', 'name', 'text', null, true)}
-                                    {renderInput('Campus Selection', 'cambus_details', 'text', ['NEC', 'NCT'], true)}
+                                    {renderInput('Campus Selection', 'campus_details', 'text', ['NEC', 'NCT'], true)}
                                     {renderInput('Willingness', 'willing', 'text', ['willing', 'Not Willing'], true)}
                                     {renderInput('Willing Domain', 'willing_domain', 'text', null, true)}
                                     {renderInput('Eligibility Status', 'eligibility', 'text', ['Yes', 'No'], true)}

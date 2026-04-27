@@ -2,7 +2,7 @@ import pool from '../config/db.config.js';
 
 class Role {
     static async findAll() {
-        const [roles] = await pool.query('SELECT * FROM role_master ORDER BY role ASC');
+        const [roles] = await pool.query('SELECT * FROM role_master ORDER BY role DESC');
         return roles;
     }
 

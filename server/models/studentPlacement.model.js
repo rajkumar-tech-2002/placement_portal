@@ -17,7 +17,7 @@ class StudentPlacement {
         const conditions = [];
         
         // Allowed sort columns for safety
-        const allowedSortColumns = ['reg_no', 'name', 'placement_status', 'highest_salary', 'created_at', 'willing', 'willing_domain', 'department', 'cambus_details'];
+        const allowedSortColumns = ['reg_no', 'name', 'placement_status', 'highest_salary', 'created_at', 'willing', 'willing_domain', 'department', 'campus_details'];
         const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'name';
         const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
@@ -28,7 +28,7 @@ class StudentPlacement {
 
         if (campus && campus.length > 0) {
             const placeholders = campus.map(() => '?').join(', ');
-            conditions.push(`s.cambus_details IN (${placeholders})`);
+            conditions.push(`s.campus_details IN (${placeholders})`);
             params.push(...campus);
         }
         
@@ -49,7 +49,7 @@ class StudentPlacement {
         const virtualColumns = ['placement_status', 'highest_salary', 'highest_salary_company'];
         const orderByColumn = virtualColumns.includes(safeSortBy) ? safeSortBy : `s.${safeSortBy}`;
 
-        sql += ` GROUP BY s.id ORDER BY s.cambus_details ASC, s.department ASC, ${orderByColumn} ${safeSortOrder}`;
+        sql += ` GROUP BY s.id ORDER BY s.campus_details ASC, s.department ASC, ${orderByColumn} ${safeSortOrder}`;
 
         if (limit !== null && offset !== null) {
             sql += ' LIMIT ? OFFSET ?';
@@ -72,7 +72,7 @@ class StudentPlacement {
 
         if (campus && campus.length > 0) {
             const placeholders = campus.map(() => '?').join(', ');
-            conditions.push(`s.cambus_details IN (${placeholders})`);
+            conditions.push(`s.campus_details IN (${placeholders})`);
             params.push(...campus);
         }
 
@@ -228,7 +228,7 @@ class StudentPlacement {
                 p.*,
                 s.name as student_name,
                 s.department,
-                s.cambus_details as campus
+                s.campus_details as campus
             FROM placement_details p
             JOIN student_placement_master s ON p.reg_no = s.reg_no
         `;
@@ -242,7 +242,7 @@ class StudentPlacement {
 
         if (campus && campus.length > 0) {
             const placeholders = campus.map(() => '?').join(', ');
-            conditions.push(`s.cambus_details IN (${placeholders})`);
+            conditions.push(`s.campus_details IN (${placeholders})`);
             params.push(...campus);
         }
 
@@ -294,7 +294,7 @@ class StudentPlacement {
 
         if (campus && campus.length > 0) {
             const placeholders = campus.map(() => '?').join(', ');
-            conditions.push(`s.cambus_details IN (${placeholders})`);
+            conditions.push(`s.campus_details IN (${placeholders})`);
             params.push(...campus);
         }
 

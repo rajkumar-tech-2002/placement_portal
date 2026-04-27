@@ -40,8 +40,8 @@ export const getAllCompanies = async (req, res) => {
         const sortOrder = req.query.sortOrder || 'DESC';
 
         const [companies, total] = await Promise.all([
-            Company.findAllPaged(limit, offset, search, sortBy, sortOrder),
-            Company.countAll(search)
+            Company.findAllPaged(limit, offset, search, sortBy, sortOrder, req.user.campus),
+            Company.countAll(search, req.user.campus)
         ]);
 
         return successResponse(res, { 
@@ -58,11 +58,11 @@ export const getAllCompanies = async (req, res) => {
 
 export const getEligibleCounts = async (req, res) => {
     try {
-        const companies = await Company.findAll();
+        const companies = await Company.findAllPaged(1000, 0, '', 'name', 'ASC', req.user.campus);
         const counts = {};
         
-        for (const company of companies) {
-            counts[company.id] = await Company.getEligibleCount(company.id);
+        for (const company of companies.data || companies) {
+            counts[company.id] = await Company.getEligibleCount(company.id, req.user.campus);
         }
         
         res.json(counts);
@@ -87,7 +87,7 @@ export const getCompanyById = async (req, res) => {
 export const getEligibleStudents = async (req, res) => {
     const { id } = req.params;
     try {
-        const students = await Company.getEligibleStudents(id);
+        const students = await Company.getEligibleStudents(id, req.user.campus);
         const company = await Company.findById(id);
         return successResponse(res, { students, company, count: students.length }, 'Eligible students fetched successfully');
     } catch (error) {

@@ -53,6 +53,7 @@ import CampusFilter from '../components/common/CampusFilter';
 import InputLabel from '../components/common/InputLabel';
 import SectionTitle from '../components/common/SectionTitle';
 import ModalTitle from '../components/common/ModalTitle';
+import { useAuth } from '../context/AuthContext';
 
 ChartJS.register(
     CategoryScale,
@@ -84,7 +85,8 @@ const Reports = () => {
     const [willingTotalPages, setWillingTotalPages] = useState(0);
     const [willingTotal, setWillingTotal] = useState(0);
 
-    const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const { user: authUser } = useAuth();
+    const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
     const [selectedDept, setSelectedDept] = useState('');
     const [selectedDomain, setSelectedDomain] = useState('');
     const [filterOptions, setFilterOptions] = useState({ departments: [], domains: [], companies: [] });
@@ -94,7 +96,7 @@ const Reports = () => {
     const [placedLimit, setPlacedLimit] = useState(10);
     const [placedTotalPages, setPlacedTotalPages] = useState(0);
     const [placedTotal, setPlacedTotal] = useState(0);
-    const [selectedPlacedCampuses, setSelectedPlacedCampuses] = useState([]);
+    const [selectedPlacedCampuses, setSelectedPlacedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
     const [selectedPlacedDept, setSelectedPlacedDept] = useState('');
     const [selectedPlacedCompany, setSelectedPlacedCompany] = useState('');
 
@@ -169,6 +171,13 @@ const Reports = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (authUser?.campus !== 'Both') {
+            setSelectedCampuses([authUser?.campus]);
+            setSelectedPlacedCampuses([authUser?.campus]);
+        }
+    }, [authUser]);
 
     useEffect(() => {
         fetchData();
@@ -249,14 +258,14 @@ const Reports = () => {
         { header: 'DEPARTMENT', key: 'department', className: 'font-semibold text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap' },
         { 
             header: 'CAMPUS', 
-            key: 'cambus_details',
+            key: 'campus_details',
             render: (val) => (
                 <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
                     val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
                     val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
                     'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 }`}>
-                    {val || 'N/A'}
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
                 </span>
             )
         },
@@ -301,14 +310,14 @@ const Reports = () => {
         { header: 'DEPARTMENT', key: 'department', className: 'text-sm font-semibold text-slate-600 dark:text-slate-400' },
         { 
             header: 'CAMPUS', 
-            key: 'cambus_details',
+            key: 'campus_details',
             render: (val) => (
                 <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
                     val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
                     val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
                     'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 }`}>
-                    {val || 'N/A'}
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
                 </span>
             )
         },
@@ -426,12 +435,14 @@ const Reports = () => {
                 <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
                     {/* Filters Area */}
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div className="md:col-span-1">
-                            <CampusFilter 
-                                selectedCampuses={selectedCampuses} 
-                                onChange={setSelectedCampuses} 
-                            />
-                        </div>
+                        {authUser?.campus === 'Both' && (
+                            <div className="md:col-span-1">
+                                <CampusFilter 
+                                    selectedCampuses={selectedCampuses} 
+                                    onChange={setSelectedCampuses} 
+                                />
+                            </div>
+                        )}
                         
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
                             <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
@@ -499,12 +510,14 @@ const Reports = () => {
                 <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
                     {/* Filters Area */}
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div className="md:col-span-1">
-                            <CampusFilter 
-                                selectedCampuses={selectedPlacedCampuses} 
-                                onChange={setSelectedPlacedCampuses} 
-                            />
-                        </div>
+                        {authUser?.campus === 'Both' && (
+                            <div className="md:col-span-1">
+                                <CampusFilter 
+                                    selectedCampuses={selectedPlacedCampuses} 
+                                    onChange={setSelectedPlacedCampuses} 
+                                />
+                            </div>
+                        )}
                         
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
                             <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
@@ -569,23 +582,77 @@ const Reports = () => {
 
             {/* Company Metrics Tab */}
             {activeTab === 'companies' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-5 duration-500">
-                    {companyData.map(company => (
-                        <div key={company.name} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="p-4 bg-primary-50 rounded-2xl dark:bg-primary-900/10 text-primary-600"><Briefcase className="w-6 h-6" /></div>
-                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">{company.count} Placed</span>
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{company.name}</h3>
-                            <div className="flex items-center gap-2 text-slate-500 font-bold text-sm mb-6">
-                                <IndianRupee className="w-4 h-4 text-primary-500" />
-                                Avg CTC: {parseFloat(company.avg_package).toFixed(1)} LPA
-                            </div>
-                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                <div className="bg-primary-500 h-full rounded-full" style={{ width: `${(company.count / stats.placed_students) * 100}%` }}></div>
+                <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-500">
+                    {/* Charts Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Pie Chart: Placed Count */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                            <SectionTitle 
+                                icon={PieIcon} 
+                                title="Placement Share" 
+                                subtitle="Distribution by student count" 
+                            />
+                            <div className="h-[350px] mt-8">
+                                <Pie 
+                                    data={{
+                                        labels: companyData.map(c => c.name),
+                                        datasets: [{
+                                            data: companyData.map(c => c.count),
+                                            backgroundColor: [
+                                                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                                                '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'
+                                            ],
+                                            borderWidth: 0
+                                        }]
+                                    }} 
+                                    options={{
+                                        ...chartOptions,
+                                        plugins: {
+                                            ...chartOptions.plugins,
+                                            legend: {
+                                                ...chartOptions.plugins.legend,
+                                                position: 'right'
+                                            }
+                                        }
+                                    }} 
+                                />
                             </div>
                         </div>
-                    ))}
+
+                        {/* Bar Chart: Salary Comparison */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                            <SectionTitle 
+                                icon={IndianRupee} 
+                                title="Salary Metrics" 
+                                subtitle="Average CTC comparison (LPA)" 
+                            />
+                            <div className="h-[350px] mt-8">
+                                <Bar 
+                                    data={{
+                                        labels: companyData.map(c => c.name),
+                                        datasets: [{
+                                            label: 'Average CTC (LPA)',
+                                            data: companyData.map(c => parseFloat(c.avg_package).toFixed(1)),
+                                            backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                                            borderRadius: 12,
+                                            hoverBackgroundColor: '#8b5cf6'
+                                        }]
+                                    }} 
+                                    options={{
+                                        ...chartOptions,
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    callback: (val) => `₹${val}L`
+                                                }
+                                            }
+                                        }
+                                    }} 
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

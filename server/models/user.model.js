@@ -7,21 +7,21 @@ class User {
     }
 
     static async create(userData) {
-        const { name, user_id, password, role, department, cambus } = userData;
+        const { name, user_id, password, role, department, campus } = userData;
         const [result] = await pool.query(
-            'INSERT INTO users (name, user_id, password, role, department, cambus) VALUES (?, ?, ?, ?, ?, ?)',
-            [name, user_id, password, role, department, cambus]
+            'INSERT INTO users (name, user_id, password, role, department, campus) VALUES (?, ?, ?, ?, ?, ?)',
+            [name, user_id, password, role, department, campus]
         );
         return { id: result.insertId, ...userData };
     }
 
     static async findById(id) {
-        const [users] = await pool.query('SELECT id, name, user_id, role, cambus FROM users WHERE id = ?', [id]);
+        const [users] = await pool.query('SELECT id, name, user_id, role, campus FROM users WHERE id = ?', [id]);
         return users[0];
     }
 
     static async findAll() {
-        const [users] = await pool.query('SELECT id, name, user_id, role, department, cambus, created_at FROM users ORDER BY created_at DESC');
+        const [users] = await pool.query('SELECT id, name, user_id, role, department, campus, created_at FROM users ORDER BY created_at DESC');
         return users;
     }
 
@@ -29,20 +29,20 @@ class User {
         const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
         return result.affectedRows > 0;
     }
-    
+
     static async update(id, userData) {
-        const { name, user_id, role, department, cambus, password } = userData;
-        let query = 'UPDATE users SET name = ?, user_id = ?, role = ?, department = ?, cambus = ?';
-        let params = [name, user_id, role, department, cambus];
-        
+        const { name, user_id, role, department, campus, password } = userData;
+        let query = 'UPDATE users SET name = ?, user_id = ?, role = ?, department = ?, campus = ?';
+        let params = [name, user_id, role, department, campus];
+
         if (password) {
             query += ', password = ?';
             params.push(password);
         }
-        
+
         query += ' WHERE id = ?';
         params.push(id);
-        
+
         const [result] = await pool.query(query, params);
         return result.affectedRows > 0;
     }

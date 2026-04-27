@@ -7,13 +7,23 @@ class Company {
         return companies;
     }
 
-    static async findAllPaged(limit = 10, offset = 0, search = '', sortBy = 'drive_date', sortOrder = 'DESC') {
+    static async findAllPaged(limit = 10, offset = 0, search = '', sortBy = 'drive_date', sortOrder = 'DESC', campus = 'Both') {
         let sql = 'SELECT * FROM companies';
         const params = [];
+        const whereClauses = [];
 
         if (search) {
-            sql += ' WHERE name LIKE ? OR category LIKE ?';
+            whereClauses.push('(name LIKE ? OR category LIKE ?)');
             params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus !== 'Both') {
+            whereClauses.push('(campus = ? OR campus = "Both")');
+            params.push(campus);
+        }
+
+        if (whereClauses.length > 0) {
+            sql += ' WHERE ' + whereClauses.join(' AND ');
         }
 
         // Validate sortBy to prevent SQL injection
@@ -29,13 +39,23 @@ class Company {
         return companies;
     }
 
-    static async countAll(search = '') {
+    static async countAll(search = '', campus = 'Both') {
         let sql = 'SELECT COUNT(*) as count FROM companies';
         const params = [];
+        const whereClauses = [];
 
         if (search) {
-            sql += ' WHERE name LIKE ? OR category LIKE ?';
+            whereClauses.push('(name LIKE ? OR category LIKE ?)');
             params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus !== 'Both') {
+            whereClauses.push('(campus = ? OR campus = "Both")');
+            params.push(campus);
+        }
+
+        if (whereClauses.length > 0) {
+            sql += ' WHERE ' + whereClauses.join(' AND ');
         }
 
         const [result] = await pool.query(sql, params);
@@ -44,12 +64,12 @@ class Company {
 
     static async create(companyData) {
         const {
-            name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa,
+            name, website, description, campus, drive_date, category, on_off_campus, campus_venue, salary_lpa,
             min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference
         } = companyData;
         const [result] = await pool.query(
-            'INSERT INTO companies (name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference]
+            'INSERT INTO companies (name, website, description, campus, drive_date, category, on_off_campus, campus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, website, description, campus, drive_date, category, on_off_campus, campus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference]
         );
         const companyId = result.insertId;
 
@@ -63,12 +83,12 @@ class Company {
 
     static async update(id, companyData) {
         const {
-            name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa,
+            name, website, description, campus, drive_date, category, on_off_campus, campus_venue, salary_lpa,
             min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference
         } = companyData;
         await pool.query(
-            'UPDATE companies SET name = ?, website = ?, description = ?, campus = ?, drive_date = ?, category = ?, on_off_campus = ?, cambus_venue = ?, salary_lpa = ?, min_10th_percent = ?, min_12th_percent = ?, min_ug_cgpa = ?, max_history_arrears = ?, max_current_arrears = ?, gender_preference = ? WHERE id = ?',
-            [name, website, description, campus, drive_date, category, on_off_campus, cambus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference, id]
+            'UPDATE companies SET name = ?, website = ?, description = ?, campus = ?, drive_date = ?, category = ?, on_off_campus = ?, campus_venue = ?, salary_lpa = ?, min_10th_percent = ?, min_12th_percent = ?, min_ug_cgpa = ?, max_history_arrears = ?, max_current_arrears = ?, gender_preference = ? WHERE id = ?',
+            [name, website, description, campus, drive_date, category, on_off_campus, campus_venue, salary_lpa, min_10th_percent, min_12th_percent, min_ug_cgpa, max_history_arrears, max_current_arrears, gender_preference, id]
         );
 
         // Sync eligible students automatically (in case criteria changed)
@@ -89,16 +109,20 @@ class Company {
         return companies[0];
     }
 
-    static async getEligibleCount(id) {
+    static async getEligibleCount(id, userCampus = 'Both') {
         const company = await this.findById(id);
         if (!company) return 0;
 
         let sql = "SELECT COUNT(*) as count FROM student_placement_master WHERE willing = 'Willing'";
         const params = [];
 
-        if (company.campus && company.campus !== 'Both') {
-            sql += ' AND cambus_details = ?';
-            params.push(company.campus);
+        // Apply campus filtering: Admin's campus takes precedence if restricted, 
+        // otherwise use company's campus restriction
+        const campusFilter = userCampus !== 'Both' ? userCampus : company.campus;
+        
+        if (campusFilter && campusFilter !== 'Both') {
+            sql += ' AND campus_details = ?';
+            params.push(campusFilter);
         }
 
         if (company.min_10th_percent !== null && company.min_10th_percent !== '') {
@@ -130,16 +154,20 @@ class Company {
         return result[0].count;
     }
 
-    static async getEligibleStudents(id) {
+    static async getEligibleStudents(id, userCampus = 'Both') {
         const company = await this.findById(id);
         if (!company) throw new Error('Company not found');
 
         let sql = "SELECT * FROM student_placement_master WHERE willing = 'Willing'";
         const params = [];
 
-        if (company.campus && company.campus !== 'Both') {
-            sql += ' AND cambus_details = ?';
-            params.push(company.campus);
+        // Apply campus filtering: Admin's campus takes precedence if restricted, 
+        // otherwise use company's campus restriction
+        const campusFilter = userCampus !== 'Both' ? userCampus : company.campus;
+
+        if (campusFilter && campusFilter !== 'Both') {
+            sql += ' AND campus_details = ?';
+            params.push(campusFilter);
         }
 
         if (company.min_10th_percent !== null && company.min_10th_percent !== '') {
@@ -167,7 +195,7 @@ class Company {
             params.push(company.gender_preference);
         }
 
-        sql += ' ORDER BY cambus_details ASC, department ASC';
+        sql += ' ORDER BY campus_details ASC, department ASC';
 
         const [students] = await pool.query(sql, params);
         return students;

@@ -11,7 +11,7 @@ const setupTables = async () => {
                 company_id INT NOT NULL,
                 student_reg_no VARCHAR(255) NOT NULL,
                 department VARCHAR(100),
-                cambus_details VARCHAR(20),
+                campus_details VARCHAR(255),
                 status ENUM('Pending', 'Willing', 'Not Willing', 'Attended', 'Absent') DEFAULT 'Willing',
                 coordinator_id VARCHAR(255),
                 remarks TEXT,
@@ -40,13 +40,13 @@ const setupTables = async () => {
             console.log('Added campus column to companies.');
         }
 
-        // 3. Verify users table has cambus
+        // 3. Verify users table has campus
         const [userColumns] = await pool.query('DESCRIBE users');
         const userFields = userColumns.map(c => c.Field);
 
-        if (!userFields.includes('cambus')) {
-            await pool.query("ALTER TABLE users ADD COLUMN cambus ENUM('NEC', 'NCT', 'Both') DEFAULT 'Both' AFTER department");
-            console.log('Added cambus column to users.');
+        if (!userFields.includes('campus')) {
+            await pool.query("ALTER TABLE users ADD COLUMN campus VARCHAR(255) DEFAULT 'Both' AFTER department");
+            console.log('Added campus column to users.');
         }
 
         console.log('Database setup complete.');

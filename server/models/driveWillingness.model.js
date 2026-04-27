@@ -1,16 +1,16 @@
 import pool from '../config/db.config.js';
 
 class DriveWillingness {
-    static async markWillingness({ companyId, studentRegNo, status, coordinatorId, remarks = '', department = null, cambus_details = null }) {
+    static async markWillingness({ companyId, studentRegNo, status, coordinatorId, remarks = '', department = null, campus_details = null }) {
         // Use REPLACE to handle both insert and update
         const sql = `
-            INSERT INTO drive_willingness (company_id, student_reg_no, status, coordinator_id, remarks, department, cambus_details)
+            INSERT INTO drive_willingness (company_id, student_reg_no, status, coordinator_id, remarks, department, campus_details)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE status = VALUES(status), coordinator_id = VALUES(coordinator_id), remarks = VALUES(remarks), department = IFNULL(VALUES(department), department), cambus_details = IFNULL(VALUES(cambus_details), cambus_details)
+            ON DUPLICATE KEY UPDATE status = VALUES(status), coordinator_id = VALUES(coordinator_id), remarks = VALUES(remarks), department = IFNULL(VALUES(department), department), campus_details = IFNULL(VALUES(campus_details), campus_details)
         `;
         // Note: We need a unique constraint on (company_id, student_reg_no) for ON DUPLICATE KEY UPDATE to work reliably
         // I'll add that constraint in a separate step if it doesn't exist
-        const [result] = await pool.query(sql, [companyId, studentRegNo, status, coordinatorId, remarks, department, cambus_details]);
+        const [result] = await pool.query(sql, [companyId, studentRegNo, status, coordinatorId, remarks, department, campus_details]);
         return result;
     }
 
@@ -32,8 +32,8 @@ class DriveWillingness {
         }
 
         if (campus && campus !== 'Both') {
-            willingFilter += ' AND (dw.cambus_details = ? OR dw.cambus_details = \'Both\')';
-            eligibleFilter += ' AND (dw.cambus_details = ? OR dw.cambus_details = \'Both\')';
+            willingFilter += ' AND (dw.campus_details = ? OR dw.campus_details = \'Both\')';
+            eligibleFilter += ' AND (dw.campus_details = ? OR dw.campus_details = \'Both\')';
             params.push(campus, campus);
         }
 
@@ -64,15 +64,23 @@ class DriveWillingness {
         return rows;
     }
 
-    static async getWillingStudents(companyId) {
-        const sql = `
+    static async getWillingStudents(companyId, campus = 'Both') {
+        let sql = `
             SELECT dw.*, spm.name, spm.personal_email, spm.student_mobile, spm.ug_pg_cgpa
             FROM drive_willingness dw
             JOIN student_placement_master spm ON dw.student_reg_no = spm.reg_no
             WHERE dw.company_id = ? AND dw.status = 'Willing'
-            ORDER BY dw.cambus_details ASC, dw.department ASC, spm.name ASC
         `;
-        const [rows] = await pool.query(sql, [companyId]);
+        const params = [companyId];
+
+        if (campus && campus !== 'Both') {
+            sql += ' AND dw.campus_details = ?';
+            params.push(campus);
+        }
+
+        sql += ' ORDER BY dw.campus_details ASC, dw.department ASC, spm.name ASC';
+        
+        const [rows] = await pool.query(sql, params);
         return rows;
     }
 
@@ -96,15 +104,15 @@ class DriveWillingness {
         );
 
         // 2. Prepare bulk insert values
-        const values = eligibleStudents.map(student => [companyId, student.reg_no, 'Willing', student.department, student.cambus_details]);
+        const values = eligibleStudents.map(student => [companyId, student.reg_no, 'Willing', student.department, student.campus_details]);
         
         // 3. INSERT new eligible students. ON DUPLICATE KEY UPDATE nothing (or just department/campus) to avoid overwriting existing 'Willing'/'Not Willing' status
         const sql = `
-            INSERT INTO drive_willingness (company_id, student_reg_no, status, department, cambus_details)
+            INSERT INTO drive_willingness (company_id, student_reg_no, status, department, campus_details)
             VALUES ?
             ON DUPLICATE KEY UPDATE 
                 department = VALUES(department),
-                cambus_details = VALUES(cambus_details)
+                campus_details = VALUES(campus_details)
         `;
         
         await pool.query(sql, [values]);

@@ -3,7 +3,7 @@ import Company from '../models/company.model.js';
 
 export const markWillingness = async (req, res) => {
     try {
-        const { companyId, studentRegNo, status, remarks, department, cambus_details } = req.body;
+        const { companyId, studentRegNo, status, remarks, department, campus_details } = req.body;
         const coordinatorId = req.user.userId;
 
         await DriveWillingness.markWillingness({
@@ -13,7 +13,7 @@ export const markWillingness = async (req, res) => {
             coordinatorId,
             remarks,
             department,
-            cambus_details
+            campus_details
         });
 
         res.json({ message: 'Status updated successfully' });
@@ -33,7 +33,7 @@ export const getDriveAttendance = async (req, res) => {
         // Coordinator Filter: only show their own campus and department
         if (role === 'COORDINATOR') {
             students = students.filter(s => 
-                (campus === 'Both' || s.cambus_details === campus) && 
+                (campus === 'Both' || s.campus_details === campus) && 
                 s.department === department
             );
         }
@@ -63,8 +63,8 @@ export const getDriveAttendance = async (req, res) => {
 
 export const getCoordinatorDrives = async (req, res) => {
     try {
-        const campus = req.user.role === 'ADMIN' ? 'Both' : req.user.campus;
-        const department = req.user.role === 'ADMIN' ? null : req.user.department;
+        const campus = req.user.role === 'SUPER ADMIN' ? 'Both' : req.user.campus;
+        const department = (req.user.role === 'ADMIN' || req.user.role === 'SUPER ADMIN') ? null : req.user.department;
         const drives = await DriveWillingness.getDrivesByCampus(campus, department);
         res.json(drives);
     } catch (error) {
@@ -75,7 +75,7 @@ export const getCoordinatorDrives = async (req, res) => {
 export const getWillingStudents = async (req, res) => {
     try {
         const { id } = req.params;
-        const students = await DriveWillingness.getWillingStudents(id);
+        const students = await DriveWillingness.getWillingStudents(id, req.user.campus);
         res.json(students);
     } catch (error) {
         res.status(500).json({ message: error.message });

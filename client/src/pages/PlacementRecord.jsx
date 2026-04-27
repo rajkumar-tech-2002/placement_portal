@@ -42,7 +42,7 @@ const PlacementRecord = () => {
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [recordSearch, setRecordSearch] = useState('');
-    const [selectedCampuses, setSelectedCampuses] = useState([]);
+    const [selectedCampuses, setSelectedCampuses] = useState(user?.campus !== 'Both' ? [user?.campus] : []);
     const [sortBy, setSortBy] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
     const [selectedIds, setSelectedIds] = useState([]);
@@ -68,6 +68,12 @@ const PlacementRecord = () => {
             setRecordsLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (user?.campus !== 'Both') {
+            setSelectedCampuses([user?.campus]);
+        }
+    }, [user]);
 
     useEffect(() => {
         fetchCompanies();
@@ -112,7 +118,7 @@ const PlacementRecord = () => {
             };
 
             if (user?.role === 'COORDINATOR') {
-                params.campus = user.cambus_details || user.campus;
+                params.campus = user.campus_details || user.campus;
                 params.department = user.department;
             }
 
@@ -190,7 +196,7 @@ const PlacementRecord = () => {
                         {val}
                     </span>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                        {row.department} • {row.campus}
+                        {row.department} • {row.campus === 'Both' ? 'NEC, NCT' : row.campus}
                     </span>
                 </div>
             )
@@ -359,15 +365,17 @@ const PlacementRecord = () => {
                                 className="pl-11 pr-4 py-2.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold text-sm"
                             />
                         </div>
-                        <div className="w-full md:w-56">
-                            <CampusFilter 
-                                selectedCampuses={selectedCampuses} 
-                                onChange={(val) => {
-                                    setSelectedCampuses(val);
-                                    setPage(1);
-                                }} 
-                            />
-                        </div>
+                        {user?.campus === 'Both' && (
+                            <div className="w-full md:w-56">
+                                <CampusFilter 
+                                    selectedCampuses={selectedCampuses} 
+                                    onChange={(val) => {
+                                        setSelectedCampuses(val);
+                                        setPage(1);
+                                    }} 
+                                />
+                            </div>
+                        )}
                     </div>
                 }
                 pagination={{

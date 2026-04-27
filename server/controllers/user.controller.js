@@ -3,7 +3,7 @@ import User from '../models/user.model.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
 export const createUser = async (req, res) => {
-    const { name, user_id, password, role, department, cambus } = req.body;
+    const { name, user_id, password, role, department, campus } = req.body;
 
     try {
         // Check if user already exists
@@ -20,7 +20,7 @@ export const createUser = async (req, res) => {
             password: hashedPassword,
             role,
             department,
-            cambus
+            campus
         });
 
         return successResponse(res, { userId: newUser.id }, 'User created successfully', 201);
@@ -53,10 +53,10 @@ export const deleteUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { name, user_id, role, department, cambus, password } = req.body;
+    const { name, user_id, role, department, campus, password } = req.body;
 
     try {
-        let updateData = { name, user_id, role, department, cambus };
+        let updateData = { name, user_id, role, department, campus };
         
         if (password) {
             updateData.password = await bcrypt.hash(password, 8);

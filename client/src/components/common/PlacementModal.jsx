@@ -51,7 +51,7 @@ const PlacementModal = ({ isOpen, onClose, onSuccess }) => {
 
             // Scoping for Coordinators
             if (user?.role === 'COORDINATOR') {
-                params.campus = user.cambus_details || user.campus;
+                params.campus = user.campus_details || user.campus;
                 params.department = user.department;
             }
 

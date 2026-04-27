@@ -40,12 +40,12 @@ export const login = async (req, res) => {
             return errorResponse(res, 'Invalid password', 401);
         }
 
-        // Campus Verification for Coordinators
-        if (user.role === 'COORDINATOR') {
+        // Campus Verification for Coordinators and Admins
+        if (user.role === 'COORDINATOR' || user.role === 'ADMIN') {
             if (!campus) {
                 return errorResponse(res, 'Please select a campus', 400);
             }
-            if (user.cambus !== 'Both' && user.cambus !== campus) {
+            if (user.campus !== 'Both' && user.campus !== campus) {
                 return errorResponse(res, `You are not authorized for the ${campus} campus`, 403);
             }
         }
@@ -55,7 +55,7 @@ export const login = async (req, res) => {
                 id: user.id, 
                 userId: user.user_id,
                 role: user.role, 
-                campus: user.role === 'ADMIN' ? 'Both' : (campus || user.cambus),
+                campus: user.role === 'SUPER ADMIN' ? 'Both' : (campus || user.campus),
                 department: user.department 
             },
             process.env.JWT_SECRET,
@@ -68,7 +68,7 @@ export const login = async (req, res) => {
                 name: user.name,
                 userId: user.user_id,
                 role: user.role,
-                campus: user.role === 'ADMIN' ? 'Both' : (campus || user.cambus),
+                campus: user.role === 'SUPER ADMIN' ? 'Both' : (campus || user.campus),
                 department: user.department
             },
             token

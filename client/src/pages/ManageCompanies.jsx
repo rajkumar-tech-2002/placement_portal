@@ -37,9 +37,11 @@ import DataTable from '../components/common/DataTable';
 import InputLabel from '../components/common/InputLabel';
 import SectionTitle from '../components/common/SectionTitle';
 import ModalTitle from '../components/common/ModalTitle';
+import { useAuth } from '../context/AuthContext';
 
 const ManageCompanies = () => {
     const navigate = useNavigate();
+    const { user: authUser } = useAuth();
     // Main State
     const [companies, setCompanies] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -66,7 +68,7 @@ const ManageCompanies = () => {
         drive_date: '',
         category: '',
         on_off_campus: 'On Campus',
-        cambus_venue: '',
+        campus_venue: '',
         salary_lpa: '',
         min_10th_percent: '',
         min_12th_percent: '',
@@ -74,7 +76,7 @@ const ManageCompanies = () => {
         max_history_arrears: '',
         max_current_arrears: '',
         gender_preference: 'All',
-        campus: 'Both'
+        campus: authUser?.campus || 'Both'
     });
 
     const fetchCompanies = async () => {
@@ -191,7 +193,7 @@ const ManageCompanies = () => {
             drive_date: '',
             category: '',
             on_off_campus: 'On Campus',
-            cambus_venue: '',
+            campus_venue: '',
             salary_lpa: '',
             min_10th_percent: '',
             min_12th_percent: '',
@@ -199,7 +201,7 @@ const ManageCompanies = () => {
             max_history_arrears: '',
             max_current_arrears: '',
             gender_preference: 'All',
-            campus: 'Both'
+            campus: authUser?.campus || 'Both'
         });
         setIsEditMode(false);
     };
@@ -220,7 +222,7 @@ const ManageCompanies = () => {
             drive_date: driveDate,
             category: company.category || '',
             on_off_campus: company.on_off_campus || 'On Campus',
-            cambus_venue: company.cambus_venue || '',
+            campus_venue: company.campus_venue || '',
             salary_lpa: company.salary_lpa || '',
             min_10th_percent: company.min_10th_percent || '',
             min_12th_percent: company.min_12th_percent || '',
@@ -282,10 +284,10 @@ const ManageCompanies = () => {
                                 </a>
                             )}
                         </div>
-                        {row.on_off_campus === 'Off Campus' && row.cambus_venue && (
+                        {row.on_off_campus === 'Off Campus' && row.campus_venue && (
                             <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                 <MapPin className="w-3 h-3" />
-                                {row.cambus_venue}
+                                {row.campus_venue}
                             </div>
                         )}
                     </div>
@@ -346,7 +348,7 @@ const ManageCompanies = () => {
                         val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/50' :
                         'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'
                     }`}>
-                    {val || 'Both'}
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'NEC, NCT')}
                 </span>
             )
         },
@@ -468,13 +470,22 @@ const ManageCompanies = () => {
                                     {renderInput('Drive Date', 'drive_date', 'date')}
                                     {renderInput('Salary (LPA)', 'salary_lpa', 'text', null, true)}
                                     {renderInput('Category', 'category', 'text', ['Product Based', 'Service Based', 'Startup', 'MNC', 'Other'], true)}
-                                    {renderInput('Institution Campus', 'campus', 'text', ['Both', 'NEC', 'NCT'], true)}
+                                    {authUser?.role === 'SUPER ADMIN' ? (
+                                        renderInput('Institution Campus', 'campus', 'text', ['Both', 'NEC', 'NCT'], true)
+                                    ) : (
+                                        <div className="flex flex-col gap-2 w-full opacity-60">
+                                            <InputLabel text="Institution Campus" />
+                                            <div className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-500 font-bold text-sm">
+                                                {authUser?.campus === 'Both' ? 'NEC, NCT' : authUser?.campus}
+                                            </div>
+                                        </div>
+                                    )}
                                     {renderInput('Placement Type', 'on_off_campus', 'text', ['On Campus', 'Off Campus'], true)}
 
                                     
                                     {formData.on_off_campus === 'Off Campus' && (
                                         <div className="col-span-full">
-                                            {renderInput('Campus/Drive Venue', 'cambus_venue', 'text')}
+                                            {renderInput('Campus/Drive Venue', 'campus_venue', 'text')}
                                         </div>
                                     )}
 

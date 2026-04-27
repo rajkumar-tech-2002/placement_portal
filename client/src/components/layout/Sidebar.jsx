@@ -41,7 +41,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
     ];
 
     const getLinks = () => {
-        if (user?.role === 'ADMIN') return adminLinks;
+        if (user?.role === 'ADMIN' || user?.role === 'SUPER ADMIN') return adminLinks;
         if (user?.role === 'COORDINATOR') return coordinatorLinks;
         return studentLinks;
     };
