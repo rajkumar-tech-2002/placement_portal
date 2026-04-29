@@ -115,7 +115,7 @@ class StudentPlacement {
         const columns = await this.getTableColumns();
         const filtered = {};
         for (const field of columns) {
-            if (data[field] !== undefined) {
+            if (data[field] !== undefined && !['id', 'created_at', 'updated_at'].includes(field)) {
                 filtered[field] = data[field];
             }
         }

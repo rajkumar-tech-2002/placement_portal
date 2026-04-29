@@ -214,11 +214,15 @@ const StudentDetails = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const submitData = { ...formData };
+            if (submitData.dob && submitData.dob.includes('T')) {
+                submitData.dob = submitData.dob.split('T')[0];
+            }
             if (isEditMode) {
-                await api.put(`/student-placements/${formData.id}`, formData);
+                await api.put(`/student-placements/${submitData.id}`, submitData);
                 toast.success('Student updated successfully');
             } else {
-                await api.post('/student-placements', formData);
+                await api.post('/student-placements', submitData);
                 toast.success('Student added successfully');
             }
             setIsModalOpen(false);
@@ -326,19 +330,27 @@ const StudentDetails = () => {
         e.target.value = null;
     };
 
-    const renderInput = (label, name, type = 'text', options = null, required = false) => (
-        <div className="flex flex-col gap-2 w-full">
-            <InputLabel text={label} required={required} />
-            {options ? (
-                <select name={name} value={formData[name] || ''} onChange={handleInputChange} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 transition-all outline-none text-sm font-bold" required={required}>
-                    <option value="">Select {label}</option>
-                    {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-            ) : (
-                <input type={type} name={name} value={formData[name] || ''} onChange={handleInputChange} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 transition-all outline-none text-sm font-bold" placeholder={`Enter ${label.toLowerCase()}`} required={required} />
-            )}
-        </div>
-    );
+    const renderInput = (label, name, type = 'text', options = null, required = false) => {
+        let inputValue = formData[name] || '';
+        if (type === 'date' && inputValue) {
+            // Ensure the date is formatted as YYYY-MM-DD for the input
+            inputValue = inputValue.includes('T') ? inputValue.split('T')[0] : inputValue;
+        }
+
+        return (
+            <div className="flex flex-col gap-2 w-full">
+                <InputLabel text={label} required={required} />
+                {options ? (
+                    <select name={name} value={inputValue} onChange={handleInputChange} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 transition-all outline-none text-sm font-bold" required={required}>
+                        <option value="">Select {label}</option>
+                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                ) : (
+                    <input type={type} name={name} value={inputValue} onChange={handleInputChange} className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 transition-all outline-none text-sm font-bold" placeholder={`Enter ${label.toLowerCase()}`} required={required} />
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700">

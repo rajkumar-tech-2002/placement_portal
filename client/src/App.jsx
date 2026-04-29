@@ -27,7 +27,7 @@ const AppContent = () => {
             ${isAuthPage ? 'h-screen overflow-hidden' : 'min-h-screen overflow-x-hidden'} 
             bg-slate-50/50 dark:bg-slate-950 transition-colors duration-500 flex flex-col
         `}>
-            <Toaster position="top-right" reverseOrder={false} />
+            <Toaster position="top-right" reverseOrder={false} containerStyle={{ zIndex: 99999 }} />
             {showSidebar && (
                 <>
                     <Navbar 
