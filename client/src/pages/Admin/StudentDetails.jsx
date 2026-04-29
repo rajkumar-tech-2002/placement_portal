@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api.service';
 import toast from 'react-hot-toast';
-import { 
-    Search, 
-    Plus, 
-    Edit2, 
-    Trash2, 
-    User, 
-    X, 
-    Download, 
-    Upload, 
-    Building2, 
-    AlertCircle, 
-    FileText, 
-    GraduationCap, 
+import {
+    Search,
+    Plus,
+    Edit2,
+    Trash2,
+    User,
+    X,
+    Download,
+    Upload,
+    Building2,
+    AlertCircle,
+    FileText,
+    GraduationCap,
     Target,
     Filter,
     Trophy
@@ -38,7 +38,7 @@ const StudentDetails = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [activeTab, setActiveTab] = useState('basic');
     const [formData, setFormData] = useState({});
-    
+
     // Pagination & Table state
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
@@ -107,15 +107,15 @@ const StudentDetails = () => {
     };
 
     const columns = [
-        { 
-            header: 'REG NO', 
-            key: 'reg_no', 
+        {
+            header: 'REG NO',
+            key: 'reg_no',
             sortable: true,
             className: 'text-sm font-black text-slate-900 dark:text-white'
         },
-        { 
-            header: 'STUDENT NAME', 
-            key: 'name', 
+        {
+            header: 'STUDENT NAME',
+            key: 'name',
             sortable: true,
             render: (val, row) => (
                 <div className="flex flex-col">
@@ -124,27 +124,26 @@ const StudentDetails = () => {
                 </div>
             )
         },
-        { 
-            header: 'DEPARTMENT', 
+        {
+            header: 'DEPARTMENT',
             key: 'department',
             className: 'text-sm font-bold text-slate-600 dark:text-slate-400'
         },
-        { 
-            header: 'CAMPUS', 
+        {
+            header: 'CAMPUS',
             key: 'campus_details',
             render: (val) => (
-                <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg border uppercase tracking-wider ${
-                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
-                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
-                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                }`}>
+                <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg border uppercase tracking-wider ${val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                        val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                            'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                    }`}>
                     {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
                 </span>
             )
         },
-        { 
-            header: 'WILLING', 
-            key: 'willing', 
+        {
+            header: 'WILLING',
+            key: 'willing',
             sortable: true,
             render: (val) => val?.toLowerCase() === 'willing' ? (
                 <span className="px-2.5 py-1 text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-lg uppercase tracking-wider border border-emerald-200 dark:border-emerald-800/50">WILLING</span>
@@ -152,15 +151,15 @@ const StudentDetails = () => {
                 <span className="px-2.5 py-1 text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400 rounded-lg uppercase tracking-wider border border-rose-200 dark:border-rose-800/50">NOT WILLING</span>
             )
         },
-        { 
-            header: 'DOMAIN', 
-            key: 'willing_domain', 
+        {
+            header: 'DOMAIN',
+            key: 'willing_domain',
             sortable: true,
             className: 'text-sm font-bold text-slate-600 dark:text-slate-400 italic'
         },
-        { 
-            header: 'PLACEMENT STATUS', 
-            key: 'placement_status', 
+        {
+            header: 'PLACEMENT STATUS',
+            key: 'placement_status',
             sortable: true,
             render: (val) => val?.toLowerCase() === 'placed' ? (
                 <span className="px-2.5 py-1 text-[9px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 rounded-lg uppercase tracking-wider border border-emerald-300 shadow-sm">PLACED</span>
@@ -170,9 +169,9 @@ const StudentDetails = () => {
                 <span className="px-2.5 py-1 text-[9px] font-black bg-slate-100 text-slate-500 rounded-lg uppercase tracking-wider border border-slate-200">NA</span>
             )
         },
-        { 
-            header: 'HIGHEST PKG', 
-            key: 'highest_salary', 
+        {
+            header: 'HIGHEST PKG',
+            key: 'highest_salary',
             sortable: true,
             render: (val) => val ? (
                 <div className="flex flex-col">
@@ -180,8 +179,8 @@ const StudentDetails = () => {
                 </div>
             ) : '-'
         },
-        { 
-            header: 'HIGHEST COMPANY', 
+        {
+            header: 'HIGHEST COMPANY',
             key: 'highest_salary_company',
             render: (val) => val ? (
                 <div className="flex items-center gap-2">
@@ -190,9 +189,9 @@ const StudentDetails = () => {
                 </div>
             ) : '-'
         },
-        { 
-            header: 'ACTIONS', 
-            key: 'actions', 
+        {
+            header: 'ACTIONS',
+            key: 'actions',
             className: 'text-right pr-6',
             render: (_, row) => (
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
@@ -239,15 +238,15 @@ const StudentDetails = () => {
                 <div className="flex gap-2 justify-end">
                     <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
                     <button onClick={async () => {
-                            toast.dismiss(t.id);
-                            try {
-                                await api.delete(`/student-placements/${id}`);
-                                toast.success('Record deleted');
-                                fetchStudents();
-                            } catch (error) {
-                                toast.error('Delete failed');
-                            }
-                        }} className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white hover:bg-red-600 rounded-lg shadow-lg shadow-red-500/20">Delete</button>
+                        toast.dismiss(t.id);
+                        try {
+                            await api.delete(`/student-placements/${id}`);
+                            toast.success('Record deleted');
+                            fetchStudents();
+                        } catch (error) {
+                            toast.error('Delete failed');
+                        }
+                    }} className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white hover:bg-red-600 rounded-lg shadow-lg shadow-red-500/20">Delete</button>
                 </div>
             </div>
         ), { duration: 5000, position: 'top-right' });
@@ -261,16 +260,16 @@ const StudentDetails = () => {
                 <div className="flex gap-2 justify-end">
                     <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 text-xs font-bold text-slate-600">Cancel</button>
                     <button onClick={async () => {
-                            toast.dismiss(t.id);
-                            try {
-                                await api.post('/student-placements/delete-many', { ids: selectedIds });
-                                toast.success('Records deleted');
-                                setSelectedIds([]);
-                                fetchStudents();
-                            } catch (error) {
-                                toast.error('Bulk delete failed');
-                            }
-                        }} className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white rounded-lg">Delete All</button>
+                        toast.dismiss(t.id);
+                        try {
+                            await api.post('/student-placements/delete-many', { ids: selectedIds });
+                            toast.success('Records deleted');
+                            setSelectedIds([]);
+                            fetchStudents();
+                        } catch (error) {
+                            toast.error('Bulk delete failed');
+                        }
+                    }} className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white rounded-lg">Delete All</button>
                 </div>
             </div>
         ), { duration: 5000, position: 'top-right' });
@@ -346,7 +345,7 @@ const StudentDetails = () => {
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
                 <ModalTitle icon={User} title="Student Details" description="Manage student placement master records" />
-                
+
                 <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                     {selectedIds.length > 0 && (
                         <button onClick={handleBulkDelete} className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl transition-all font-black text-xs uppercase tracking-widest shadow-lg shadow-red-500/5 active:scale-95">
@@ -395,7 +394,7 @@ const StudentDetails = () => {
             </div>
 
             {/* Table Area Section */}
-            <DataTable 
+            <DataTable
                 columns={columns}
                 data={students}
                 loading={loading}
@@ -414,12 +413,12 @@ const StudentDetails = () => {
                     <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
                         <div className="relative w-full md:w-[400px] group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                            <input 
-                                type="text" 
-                                placeholder="Search by name, registration or email..." 
-                                value={searchTerm} 
-                                onChange={(e) => setSearchTerm(e.target.value)} 
-                                className="pl-12 pr-4 py-3 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold text-sm shadow-sm" 
+                            <input
+                                type="text"
+                                placeholder="Search by name, registration or email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-12 pr-4 py-3 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold text-sm shadow-sm"
                             />
                         </div>
                         {authUser?.campus === 'Both' && (
@@ -443,10 +442,10 @@ const StudentDetails = () => {
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-300">
                     {/* Modal Header */}
                     <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-                        <ModalTitle 
-                            icon={isEditMode ? Edit2 : Plus} 
-                            title={isEditMode ? 'Edit Student Details' : 'Add New Student'} 
-                            description="Maintain comprehensive student academic and placement profiles" 
+                        <ModalTitle
+                            icon={isEditMode ? Edit2 : Plus}
+                            title={isEditMode ? 'Edit Student Details' : 'Add New Student'}
+                            description="Maintain comprehensive student academic and placement profiles"
                         />
                         <button onClick={() => setIsModalOpen(false)} className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">
                             <X className="w-6 h-6" />
@@ -456,9 +455,8 @@ const StudentDetails = () => {
                     {/* Modal Tabs */}
                     <div className="px-8 flex gap-2 bg-slate-50/30 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 shrink-0 overflow-x-auto no-scrollbar">
                         {tabs.map(tab => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-5 text-xs font-black uppercase tracking-[0.2em] border-b-2 transition-all whitespace-nowrap ${
-                                activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                            }`}>
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-5 text-xs font-black uppercase tracking-[0.2em] border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                }`}>
                                 {tab.label}
                             </button>
                         ))}
@@ -474,7 +472,7 @@ const StudentDetails = () => {
                                     {renderInput('Campus Selection', 'campus_details', 'text', ['NEC', 'NCT'], true)}
                                     {renderInput('Willingness', 'willing', 'text', ['willing', 'Not Willing'], true)}
                                     {renderInput('Willing Domain', 'willing_domain', 'text', null, true)}
-                                    {renderInput('Eligibility Status', 'eligibility', 'text', ['Yes', 'No'], true)}
+                                    {renderInput('Hostel Status', 'hostel_dayscholor', 'text', ['Hosteller', 'Day Scholar'], true)}
                                     {renderInput('Placement Status', 'placement_status', 'text', ['Placed', 'Unplaced', 'NA'], true)}
                                     {renderInput('Highest Package (LPA)', 'highest_salary', 'number')}
                                     {renderInput('Highest Package Company', 'highest_salary_company')}
@@ -486,7 +484,7 @@ const StudentDetails = () => {
                                     <section>
                                         <SectionTitle icon={FileText} title="Secondary (10th) Education" subtitle="Enter your secondary school credentials" />
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                                            {renderInput('Percentage (%)', 'tenth_percentage', 'number', null, true )}
+                                            {renderInput('Percentage (%)', 'tenth_percentage', 'number', null, true)}
                                             {renderInput('Passing Year', 'tenth_year', 'number')}
                                             {renderInput('Board of Study', 'tenth_board')}
                                             {renderInput('School Name', 'tenth_school_name')}
