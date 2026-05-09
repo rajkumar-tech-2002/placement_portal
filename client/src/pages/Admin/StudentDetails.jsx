@@ -25,6 +25,7 @@ import InputLabel from '../../components/common/InputLabel';
 import ModalTitle from '../../components/common/ModalTitle';
 import SectionTitle from '../../components/common/SectionTitle';
 import { useAuth } from '../../context/AuthContext';
+import DepartmentFilter from '../../components/common/DepartmentFilter';
 
 const StudentDetails = () => {
     const [students, setStudents] = useState([]);
@@ -33,6 +34,7 @@ const StudentDetails = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const { user: authUser } = useAuth();
     const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
+    const [selectedDepartment, setSelectedDepartment] = useState('');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -47,6 +49,26 @@ const StudentDetails = () => {
     const [sortBy, setSortBy] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [departments, setDepartments] = useState([]);
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            if (!formData.campus_details) {
+                setDepartments([]);
+                return;
+            }
+            try {
+                const response = await api.get('/departments', {
+                    params: { campus: formData.campus_details }
+                });
+                setDepartments(response.data.data.map(d => d.department));
+            } catch (error) {
+                console.error('Failed to fetch departments:', error);
+            }
+        };
+
+        fetchDepartments();
+    }, [formData.campus_details]);
 
     const tabs = [
         { id: 'basic', label: 'Basic & Placement' },
@@ -71,7 +93,7 @@ const StudentDetails = () => {
 
     useEffect(() => {
         fetchStudents();
-    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses]);
+    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses, selectedDepartment]);
 
     const fetchStudents = async () => {
         try {
@@ -83,7 +105,8 @@ const StudentDetails = () => {
                     search: debouncedSearch,
                     sortBy,
                     sortOrder,
-                    campus: selectedCampuses
+                    campus: selectedCampuses,
+                    department: selectedDepartment
                 }
             });
             setStudents(response.data.data);
@@ -398,7 +421,15 @@ const StudentDetails = () => {
                         </div>
                     </div>
 
-                    <button onClick={() => { setFormData({}); setIsEditMode(false); setIsModalOpen(true); setActiveTab('basic'); }} className="flex items-center gap-2 px-8 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-2xl transition-all shadow-xl shadow-primary-500/20 font-bold text-sm active:scale-95">
+                    <button onClick={() => { 
+                        setFormData({
+                            campus_details: authUser?.role === 'COORDINATOR' ? authUser?.campus : '',
+                            department: authUser?.role === 'COORDINATOR' ? authUser?.department : ''
+                        }); 
+                        setIsEditMode(false); 
+                        setIsModalOpen(true); 
+                        setActiveTab('basic'); 
+                    }} className="flex items-center gap-2 px-8 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-2xl transition-all shadow-xl shadow-primary-500/20 font-bold text-sm active:scale-95">
                         <Plus className="w-4 h-4" />
                         Add Student
                     </button>
@@ -435,9 +466,12 @@ const StudentDetails = () => {
                         </div>
                         {authUser?.campus === 'Both' && (
                             <div className="w-full md:w-72">
-                                <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
+                                <CampusFilter selectedCampuses={selectedCampuses} onChange={(val) => { setSelectedCampuses(val); setSelectedDepartment(''); }} />
                             </div>
                         )}
+                        <div className="w-full md:w-72">
+                            <DepartmentFilter selectedCampuses={selectedCampuses} selectedDepartment={selectedDepartment} onChange={setSelectedDepartment} />
+                        </div>
                     </div>
                 }
                 pagination={{
@@ -481,7 +515,7 @@ const StudentDetails = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                     {renderInput('Registration Number', 'reg_no', 'text', null, true)}
                                     {renderInput('Full Name', 'name', 'text', null, true)}
-                                    {renderInput('Campus Selection', 'campus_details', 'text', ['NEC', 'NCT'], true)}
+                                    {renderInput('Campus Selection', 'campus_details', 'text', authUser?.role === 'COORDINATOR' ? null : ['NEC', 'NCT'], true)}
                                     {renderInput('Willingness', 'willing', 'text', ['willing', 'Not Willing'], true)}
                                     {renderInput('Willing Domain', 'willing_domain', 'text', null, true)}
                                     {renderInput('Hostel Status', 'hostel_dayscholor', 'text', ['Hosteller', 'Day Scholar'], true)}
@@ -517,7 +551,7 @@ const StudentDetails = () => {
                                         <SectionTitle icon={Target} title="Collegiate Performance" subtitle="Degree and graduation metrics" />
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
                                             {renderInput('Current CGPA', 'ug_pg_cgpa', 'number', null, true)}
-                                            {renderInput('Branch / Department', 'department', 'text', null, true)}
+                                            {renderInput('Branch / Department', 'department', 'text', departments.length > 0 ? departments : null, true)}
                                             {renderInput('Current Arrears', 'current_arrears', 'number', null, true)}
                                             {renderInput('History of Arrears', 'history_of_arrears', 'number', null, true)}
                                             {renderInput('Study Gap Years', 'study_gap_years', 'number')}

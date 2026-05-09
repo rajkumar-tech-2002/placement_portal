@@ -1,7 +1,7 @@
 import pool from '../config/db.config.js';
 
 class LeetCodeDetail {
-    static async getAll(limit = null, offset = null, search = '', sortBy = 'created_at', sortOrder = 'DESC', campus = [], department = null) {
+    static async getAll(limit = null, offset = null, search = '', sortBy = 'created_at', sortOrder = 'DESC', campus = [], department = null, syncStatus = null) {
         let sql = 'SELECT * FROM leetcode_details';
         const params = [];
         const conditions = [];
@@ -26,6 +26,11 @@ class LeetCodeDetail {
             params.push(department);
         }
 
+        if (syncStatus) {
+            conditions.push('sync_status = ?');
+            params.push(syncStatus);
+        }
+
         if (conditions.length > 0) {
             sql += ' WHERE ' + conditions.join(' AND ');
         }
@@ -48,7 +53,7 @@ class LeetCodeDetail {
         return rows;
     }
 
-    static async countAll(search = '', campus = [], department = null) {
+    static async countAll(search = '', campus = [], department = null, syncStatus = null) {
         let sql = 'SELECT COUNT(*) as total FROM leetcode_details';
         const params = [];
         const conditions = [];
@@ -67,6 +72,11 @@ class LeetCodeDetail {
         if (department) {
             conditions.push('department = ?');
             params.push(department);
+        }
+
+        if (syncStatus) {
+            conditions.push('sync_status = ?');
+            params.push(syncStatus);
         }
 
         if (conditions.length > 0) {

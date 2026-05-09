@@ -38,6 +38,7 @@ import { formatDate } from '../../utils/dateFormatter';
 import InputLabel from '../../components/common/InputLabel';
 import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
+import DepartmentFilter from '../../components/common/DepartmentFilter';
 
 const LeetCodeDetails = () => {
     const { user } = useAuth();
@@ -61,6 +62,7 @@ const LeetCodeDetails = () => {
     const [selectedCampuses, setSelectedCampuses] = useState(
         user?.campus !== 'Both' ? [user?.campus] : []
     );
+    const [selectedDepartment, setSelectedDepartment] = useState('');
     const [isSyncingAll, setIsSyncingAll] = useState(false);
     const [syncProgress, setSyncProgress] = useState({
         isRunning: false,
@@ -71,7 +73,27 @@ const LeetCodeDetails = () => {
     });
     const [minSolved, setMinSolved] = useState(0);
     const [minRating, setMinRating] = useState(0);
-    const [showEligibleOnly, setShowEligibleOnly] = useState(false);
+    const [showFailedOnly, setShowFailedOnly] = useState(false);
+    const [departments, setDepartments] = useState([]);
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            if (!formData.campus_details) {
+                setDepartments([]);
+                return;
+            }
+            try {
+                const response = await api.get('/departments', {
+                    params: { campus: formData.campus_details }
+                });
+                setDepartments(response.data.data.map(d => d.department));
+            } catch (error) {
+                console.error('Failed to fetch departments:', error);
+            }
+        };
+
+        fetchDepartments();
+    }, [formData.campus_details]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -89,7 +111,7 @@ const LeetCodeDetails = () => {
 
     useEffect(() => {
         fetchDetails();
-    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses, showEligibleOnly]);
+    }, [page, limit, debouncedSearch, sortBy, sortOrder, selectedCampuses, selectedDepartment, showFailedOnly]);
 
     // Poll for sync status
     useEffect(() => {
@@ -122,8 +144,7 @@ const LeetCodeDetails = () => {
     const fetchDetails = async () => {
         try {
             setLoading(true);
-            const endpoint = showEligibleOnly ? '/leetcode-details/eligible' : '/leetcode-details';
-            const response = await api.get(endpoint, {
+            const response = await api.get('/leetcode-details', {
                 params: {
                     page,
                     limit,
@@ -131,8 +152,10 @@ const LeetCodeDetails = () => {
                     sortBy,
                     sortOrder,
                     campus: selectedCampuses,
-                    minSolved: showEligibleOnly ? 200 : minSolved,
-                    minRating: showEligibleOnly ? 1500 : minRating
+                    department: selectedDepartment,
+                    minSolved,
+                    minRating,
+                    syncStatus: showFailedOnly ? 'FAILED' : null
                 }
             });
             setDetails(response.data.data);
@@ -148,7 +171,11 @@ const LeetCodeDetails = () => {
     const handleSyncAll = async () => {
         try {
             setIsSyncingAll(true);
-            const response = await api.post('/leetcode-details/sync-all');
+            const response = await api.post('/leetcode-details/sync-all', null, {
+                params: {
+                    syncStatus: showFailedOnly ? 'FAILED' : null
+                }
+            });
             toast.success(response.data.message);
             // Trigger an immediate status check
             const statusResponse = await api.get('/leetcode-details/sync-status');
@@ -336,7 +363,7 @@ const LeetCodeDetails = () => {
         },
         { 
             header: 'LAST SYNC', 
-            key: 'last_sync_at',
+            key: 'last_synced_at',
             render: (val) => (
                 <div className="flex flex-col">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">{formatRelativeTime(val)}</span>
@@ -561,23 +588,26 @@ const LeetCodeDetails = () => {
                             </div>
                             {user?.campus === 'Both' && (
                                 <div className="w-full md:w-56">
-                                    <CampusFilter selectedCampuses={selectedCampuses} onChange={setSelectedCampuses} />
+                                    <CampusFilter selectedCampuses={selectedCampuses} onChange={(val) => { setSelectedCampuses(val); setSelectedDepartment(''); }} />
                                 </div>
                             )}
+                            <div className="w-full md:w-56">
+                                <DepartmentFilter selectedCampuses={selectedCampuses} selectedDepartment={selectedDepartment} onChange={setSelectedDepartment} />
+                            </div>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto bg-slate-50/50 dark:bg-slate-800/30 p-2 rounded-[1.25rem] border border-slate-100 dark:border-slate-800">
                             <div className="flex items-center gap-2 px-3">
                                 <input 
                                     type="checkbox" 
-                                    id="eligible-only" 
-                                    checked={showEligibleOnly} 
-                                    onChange={(e) => setShowEligibleOnly(e.target.checked)}
+                                    id="failed-only" 
+                                    checked={showFailedOnly} 
+                                    onChange={(e) => setShowFailedOnly(e.target.checked)}
                                     className="w-4 h-4 text-primary-600 rounded-lg border-slate-200 focus:ring-primary-500 transition-all cursor-pointer"
                                 />
-                                <label htmlFor="eligible-only" className="text-xs font-black text-slate-500 uppercase tracking-widest cursor-pointer flex items-center gap-2">
-                                    <Trophy className="w-4 h-4 text-amber-500" />
-                                    Eligible Only
+                                <label htmlFor="failed-only" className="text-xs font-black text-slate-500 uppercase tracking-widest cursor-pointer flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-red-500" />
+                                    Failed Sync
                                 </label>
                             </div>
                             
@@ -635,7 +665,7 @@ const LeetCodeDetails = () => {
                             {renderInput('Registration Number', 'reg_no', 'text', null, true)}
                             {renderInput('Student Full Name', 'name', 'text', null, true)}
                             {renderInput('Campus Site', 'campus_details', 'text', user?.role === 'COORDINATOR' ? null : ['NEC', 'NCT'], true)}
-                            {renderInput('Department Name', 'department', 'text', null, true)}
+                            {renderInput('Department Name', 'department', 'text', departments.length > 0 ? departments : null, true)}
                             {renderInput('LeetCode Username', 'leetcode_username', 'text', null, true)}
                         </form>
                     </div>

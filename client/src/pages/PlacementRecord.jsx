@@ -11,6 +11,7 @@ import ModalTitle from '../components/common/ModalTitle';
 import CampusFilter from '../components/common/CampusFilter';
 import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
+import DepartmentFilter from '../components/common/DepartmentFilter';
 
 const PlacementRecord = () => {
     const { user } = useAuth();
@@ -45,6 +46,7 @@ const PlacementRecord = () => {
     const [selectedCampuses, setSelectedCampuses] = useState(user?.campus !== 'Both' ? [user?.campus] : []);
     const [sortBy, setSortBy] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
+    const [selectedDepartment, setSelectedDepartment] = useState('');
     const [selectedIds, setSelectedIds] = useState([]);
 
     const fetchRecords = async () => {
@@ -55,6 +57,7 @@ const PlacementRecord = () => {
                 limit,
                 search: recordSearch,
                 campus: selectedCampuses,
+                department: selectedDepartment,
                 sortBy,
                 sortOrder
             });
@@ -82,7 +85,7 @@ const PlacementRecord = () => {
 
     useEffect(() => {
         fetchRecords();
-    }, [page, limit, recordSearch, selectedCampuses, sortBy, sortOrder]);
+    }, [page, limit, recordSearch, selectedCampuses, selectedDepartment, sortBy, sortOrder]);
 
     const handleSort = (column) => {
         if (sortBy === column) {
@@ -371,11 +374,22 @@ const PlacementRecord = () => {
                                     selectedCampuses={selectedCampuses} 
                                     onChange={(val) => {
                                         setSelectedCampuses(val);
+                                        setSelectedDepartment('');
                                         setPage(1);
                                     }} 
                                 />
                             </div>
                         )}
+                        <div className="w-full md:w-56">
+                            <DepartmentFilter 
+                                selectedCampuses={selectedCampuses} 
+                                selectedDepartment={selectedDepartment} 
+                                onChange={(val) => {
+                                    setSelectedDepartment(val);
+                                    setPage(1);
+                                }} 
+                            />
+                        </div>
                     </div>
                 }
                 pagination={{

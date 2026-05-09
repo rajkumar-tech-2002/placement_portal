@@ -35,7 +35,8 @@ const DataTable = ({
     pagination = null,
     emptyMessage = 'No records found',
     onLimitChange = null,
-    limit = 10
+    limit = 10,
+    selectable = true
 }) => {
 
     const renderSortIcon = (columnKey) => {
@@ -63,14 +64,16 @@ const DataTable = ({
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                             {/* Selection Checkbox Header */}
-                            <th className="p-4 w-12 text-center">
-                                <button 
-                                    onClick={onSelectAll} 
-                                    className="text-primary-600 transition-transform active:scale-90"
-                                >
-                                    {isAllSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                                </button>
-                            </th>
+                            {selectable && (
+                                <th className="p-4 w-12 text-center">
+                                    <button 
+                                        onClick={onSelectAll} 
+                                        className="text-primary-600 transition-transform active:scale-90"
+                                    >
+                                        {isAllSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                    </button>
+                                </th>
+                            )}
 
                             {/* Dynamic Headers */}
                             {columns.map((col, idx) => (
@@ -93,7 +96,9 @@ const DataTable = ({
                             // Skeleton Loading State
                             Array(5).fill(0).map((_, i) => (
                                 <tr key={i} className="animate-pulse">
-                                    <td className="p-4"><div className="w-5 h-5 mx-auto bg-slate-100 dark:bg-slate-800 rounded-md"></div></td>
+                                    {selectable && (
+                                        <td className="p-4"><div className="w-5 h-5 mx-auto bg-slate-100 dark:bg-slate-800 rounded-md"></div></td>
+                                    )}
                                     {columns.map((_, idx) => (
                                         <td key={idx} className="p-4">
                                             <div className="h-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl"></div>
@@ -104,7 +109,7 @@ const DataTable = ({
                         ) : data.length === 0 ? (
                             // Empty State
                             <tr>
-                                <td colSpan={columns.length + 1} className="p-20 text-center">
+                                <td colSpan={columns.length + (selectable ? 1 : 0)} className="p-20 text-center">
                                     <div className="flex flex-col items-center gap-4">
                                         <div className="w-20 h-20 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-300">
                                             <Trophy className="w-10 h-10" />
@@ -122,17 +127,19 @@ const DataTable = ({
                                     key={row[idKey] || rowIdx} 
                                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group"
                                 >
-                                    <td className="p-4 text-center">
-                                        <button 
-                                            onClick={() => onSelect(row[idKey])} 
-                                            className={selectedIds.includes(row[idKey]) ? "text-primary-600" : "text-slate-300 transition-colors group-hover:text-slate-400"}
-                                        >
-                                            {selectedIds.includes(row[idKey]) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                                        </button>
-                                    </td>
+                                    {selectable && (
+                                        <td className="p-4 text-center">
+                                            <button 
+                                                onClick={() => onSelect(row[idKey])} 
+                                                className={selectedIds.includes(row[idKey]) ? "text-primary-600" : "text-slate-300 transition-colors group-hover:text-slate-400"}
+                                            >
+                                                {selectedIds.includes(row[idKey]) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                            </button>
+                                        </td>
+                                    )}
                                     {columns.map((col, colIdx) => (
                                         <td key={colIdx} className={`p-4 ${col.className || ''}`}>
-                                            {col.render ? col.render(row[col.key], row) : (
+                                            {col.render ? col.render(row[col.key], row, rowIdx) : (
                                                 <span className="text-sm font-bold text-slate-900 dark:text-white">
                                                     {row[col.key] || '-'}
                                                 </span>

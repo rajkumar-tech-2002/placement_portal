@@ -46,6 +46,7 @@ import {
 } from 'chart.js';
 import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { formatDate } from '../utils/dateFormatter';
 import Pagination from '../components/common/Pagination';
 import DataTable from '../components/common/DataTable';
@@ -54,6 +55,7 @@ import InputLabel from '../components/common/InputLabel';
 import SectionTitle from '../components/common/SectionTitle';
 import ModalTitle from '../components/common/ModalTitle';
 import { useAuth } from '../context/AuthContext';
+import DepartmentFilter from '../components/common/DepartmentFilter';
 
 ChartJS.register(
     CategoryScale,
@@ -246,6 +248,11 @@ const Reports = () => {
 
     const willingnessColumns = [
         { 
+            header: 'S.NO', 
+            key: 'sno', 
+            render: (_, __, index) => <span className="font-bold text-slate-500">{index + 1 + (willingPage - 1) * willingLimit}</span>
+        },
+        { 
             header: 'REGISTER NO', 
             key: 'reg_no', 
             render: (val) => <span className="font-mono text-sm font-bold text-primary-600">{val}</span>
@@ -255,7 +262,11 @@ const Reports = () => {
             key: 'name', 
             render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
         },
-        { header: 'DEPARTMENT', key: 'department', className: 'font-semibold text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap' },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
         { 
             header: 'CAMPUS', 
             key: 'campus_details',
@@ -289,25 +300,27 @@ const Reports = () => {
 
     const placementColumns = [
         { 
-            header: 'PHOTO', 
-            key: 'name', 
-            render: (val) => (
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 border-2 border-white dark:border-slate-700 shadow-sm">
-                    {(val || '?').charAt(0)}
-                </div>
-            )
+            header: 'S.NO', 
+            key: 'sno', 
+            render: (_, __, index) => <span className="font-bold text-slate-500">{index + 1 + (placedPage - 1) * placedLimit}</span>
+        },
+        { 
+            header: 'REGISTER NO', 
+            key: 'reg_no', 
+            render: (val, row) => <span className="font-mono text-sm font-bold text-primary-600">{row.reg_no || val}</span>
         },
         { 
             header: 'STUDENT', 
             key: 'name', 
-            render: (val, row) => (
-                <div>
-                    <div className="font-bold text-slate-900 dark:text-white mb-0.5">{val}</div>
-                    <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">{row.reg_no}</div>
-                </div>
+            render: (val) => (
+                <span className="font-bold text-slate-900 dark:text-white">{val}</span>
             )
         },
-        { header: 'DEPARTMENT', key: 'department', className: 'text-sm font-semibold text-slate-600 dark:text-slate-400' },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
         { 
             header: 'CAMPUS', 
             key: 'campus_details',
@@ -339,6 +352,86 @@ const Reports = () => {
     const filteredWilling = willingData;
     const filteredPlaced = placedData;
 
+    const handleExport = async () => {
+        try {
+            let dataToExport = [];
+            let filename = '';
+            let title = '';
+
+            if (activeTab === 'willing') {
+                const data = await getWillingReport({
+                    page: 1,
+                    limit: 1000000,
+                    search: debouncedSearch,
+                    campus: selectedCampuses,
+                    department: selectedDept,
+                    domain: selectedDomain
+                });
+                
+                dataToExport = data.report.map((item, index) => ({
+                    'S.NO': index + 1,
+                    'REGISTER NO': item.reg_no || '',
+                    'STUDENT NAME': item.name || '',
+                    'DEPARTMENT': item.department || '',
+                    'CAMPUS': item.campus_details === 'Both' ? 'NEC, NCT' : (item.campus_details || 'N/A'),
+                    'WILLINGNESS': 'Willing',
+                    'INTERESTED DOMAIN': item.willing_domain || 'Not Specified',
+                    'ADDED ON': formatDate(item.created_at)
+                }));
+                
+                filename = 'Placement_Willingness_Report.xlsx';
+                title = 'Placement Willingness Report';
+
+            } else if (activeTab === 'placed') {
+                const data = await getPlacedReport({
+                    page: 1,
+                    limit: 1000000,
+                    search: debouncedSearch,
+                    campus: selectedPlacedCampuses,
+                    department: selectedPlacedDept,
+                    company: selectedPlacedCompany
+                });
+
+                dataToExport = data.report.map((item, index) => ({
+                    'S.NO': index + 1,
+                    'REGISTER NO': item.reg_no || '',
+                    'STUDENT NAME': item.name || '',
+                    'DEPARTMENT': item.department || '',
+                    'CAMPUS': item.campus_details === 'Both' ? 'NEC, NCT' : (item.campus_details || 'N/A'),
+                    'COMPANY': item.company_name || '',
+                    'CTC (LPA)': item.salary ? `₹ ${item.salary} LPA` : '',
+                    'DATE': formatDate(item.placement_date)
+                }));
+                
+                filename = 'Placements_Record_Report.xlsx';
+                title = 'Placements Record Report';
+            }
+
+            if (dataToExport.length === 0) {
+                toast.error('No data available to export');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet([]);
+            XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
+            
+            const currentDateTime = new Date().toLocaleString();
+            XLSX.utils.sheet_add_aoa(ws, [[`Exported On: ${currentDateTime}`]], { origin: 'A2' });
+            XLSX.utils.sheet_add_aoa(ws, [[]], { origin: 'A3' });
+            XLSX.utils.sheet_add_json(ws, dataToExport, { origin: 'A4' });
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Report');
+
+            XLSX.writeFile(wb, filename);
+            toast.success('Report exported successfully!');
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            toast.error('Failed to export report');
+        }
+    };
+
     // if (loading) return (
     //     <div className="flex items-center justify-center min-h-[400px]">
     //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -358,10 +451,15 @@ const Reports = () => {
                     <button onClick={fetchData} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 dark:border-slate-700">
                         <TrendingUp className="w-5 h-5" />
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold">
-                        <Download className="w-5 h-5" />
-                        Export All
-                    </button>
+                    {(activeTab === 'willing' || activeTab === 'placed') && (
+                        <button 
+                            onClick={handleExport}
+                            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold"
+                        >
+                            <Download className="w-5 h-5" />
+                            {activeTab === 'willing' ? 'Export Willing Students' : 'Export Placements'}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -439,23 +537,20 @@ const Reports = () => {
                             <div className="md:col-span-1">
                                 <CampusFilter 
                                     selectedCampuses={selectedCampuses} 
-                                    onChange={setSelectedCampuses} 
+                                    onChange={(val) => {
+                                        setSelectedCampuses(val);
+                                        setSelectedDept('');
+                                    }} 
                                 />
                             </div>
                         )}
                         
-                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
-                            <select
-                                value={selectedDept}
-                                onChange={(e) => { setSelectedDept(e.target.value); setWillingPage(1); }}
-                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
-                            >
-                                <option value="">All Departments</option>
-                                {filterOptions.departments.map(dept => (
-                                    <option key={dept} value={dept}>{dept}</option>
-                                ))}
-                            </select>
+                        <div className="md:col-span-1">
+                            <DepartmentFilter 
+                                selectedCampuses={selectedCampuses} 
+                                selectedDepartment={selectedDept} 
+                                onChange={setSelectedDept} 
+                            />
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
@@ -500,6 +595,7 @@ const Reports = () => {
                             onPageChange: setWillingPage
                         }}
                         idKey="reg_no"
+                        selectable={false}
                     />
                 </div>
             )}
@@ -514,23 +610,20 @@ const Reports = () => {
                             <div className="md:col-span-1">
                                 <CampusFilter 
                                     selectedCampuses={selectedPlacedCampuses} 
-                                    onChange={setSelectedPlacedCampuses} 
+                                    onChange={(val) => {
+                                        setSelectedPlacedCampuses(val);
+                                        setSelectedPlacedDept('');
+                                    }} 
                                 />
                             </div>
                         )}
                         
-                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                            <InputLabel icon={GraduationCap} text="Department" className="mb-0 mt-1" />
-                            <select
-                                value={selectedPlacedDept}
-                                onChange={(e) => { setSelectedPlacedDept(e.target.value); setPlacedPage(1); }}
-                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
-                            >
-                                <option value="">All Departments</option>
-                                {filterOptions.departments.map(dept => (
-                                    <option key={dept} value={dept}>{dept}</option>
-                                ))}
-                            </select>
+                        <div className="md:col-span-1">
+                            <DepartmentFilter 
+                                selectedCampuses={selectedPlacedCampuses} 
+                                selectedDepartment={selectedPlacedDept} 
+                                onChange={setSelectedPlacedDept} 
+                            />
                         </div>
 
                         <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
@@ -575,6 +668,7 @@ const Reports = () => {
                             onPageChange: setPlacedPage
                         }}
                         idKey="reg_no"
+                        selectable={false}
                     />
                 </div>
             )}

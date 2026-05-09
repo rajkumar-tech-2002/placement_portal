@@ -26,6 +26,7 @@ import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
 import DataTable from '../../components/common/DataTable';
 import { useAuth } from '../../context/AuthContext';
+import DepartmentFilter from '../../components/common/DepartmentFilter';
 
 const EligibleStudents = () => {
     const { id } = useParams();
@@ -40,6 +41,7 @@ const EligibleStudents = () => {
     const [selectedCampuses, setSelectedCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [selectedDepartment, setSelectedDepartment] = useState('');
 
     useEffect(() => {
         if (authUser?.campus !== 'Both') {
@@ -182,8 +184,10 @@ const EligibleStudents = () => {
         
         const matchesCampus = selectedCampuses.length === 0 || 
                             selectedCampuses.includes(s.campus_details);
+
+        const matchesDepartment = !selectedDepartment || s.department === selectedDepartment;
         
-        return matchesSearch && matchesCampus;
+        return matchesSearch && matchesCampus && matchesDepartment;
     }).sort((a, b) => {
         const valA = a[sortBy] || '';
         const valB = b[sortBy] || '';
@@ -351,10 +355,20 @@ const EligibleStudents = () => {
                                         <div className="w-full md:w-auto min-w-[300px]">
                                             <CampusFilter 
                                                 selectedCampuses={selectedCampuses} 
-                                                onChange={setSelectedCampuses} 
+                                                onChange={(val) => {
+                                                    setSelectedCampuses(val);
+                                                    setSelectedDepartment('');
+                                                }} 
                                             />
                                         </div>
                                     )}
+                                    <div className="w-full md:w-auto min-w-[250px]">
+                                        <DepartmentFilter 
+                                            selectedCampuses={selectedCampuses} 
+                                            selectedDepartment={selectedDepartment} 
+                                            onChange={setSelectedDepartment} 
+                                        />
+                                    </div>
                                     <div className="relative w-full md:w-80">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input 

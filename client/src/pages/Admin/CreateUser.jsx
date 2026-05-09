@@ -38,6 +38,7 @@ import InputLabel from '../../components/common/InputLabel';
 import SectionTitle from '../../components/common/SectionTitle';
 import ModalTitle from '../../components/common/ModalTitle';
 import { useAuth } from '../../context/AuthContext';
+import DepartmentFilter from '../../components/common/DepartmentFilter';
 
 const CreateUser = () => {
     const navigate = useNavigate();
@@ -59,6 +60,7 @@ const CreateUser = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [selectedDepartment, setSelectedDepartment] = useState('');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -282,7 +284,9 @@ const CreateUser = () => {
                 selectedCampuses.includes(user.campus) ||
                 user.campus === 'Both';
 
-            return matchesSearch && matchesCampus;
+            const matchesDepartment = !selectedDepartment || user.department === selectedDepartment;
+
+            return matchesSearch && matchesCampus && matchesDepartment;
         })
         .sort((a, b) => {
             const valA = (a[sortBy] || '').toString().toLowerCase();
@@ -504,10 +508,20 @@ const CreateUser = () => {
                                 <div className="hidden lg:block">
                                     <CampusFilter 
                                         selectedCampuses={selectedCampuses} 
-                                        onChange={setSelectedCampuses} 
+                                        onChange={(val) => {
+                                            setSelectedCampuses(val);
+                                            setSelectedDepartment('');
+                                        }} 
                                     />
                                 </div>
                             )}
+                            <div className="hidden lg:block min-w-[200px]">
+                                <DepartmentFilter 
+                                    selectedCampuses={selectedCampuses} 
+                                    selectedDepartment={selectedDepartment} 
+                                    onChange={setSelectedDepartment} 
+                                />
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50 dark:bg-slate-900/50 px-6 py-3 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm transition-all">

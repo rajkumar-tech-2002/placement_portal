@@ -19,7 +19,9 @@ export const getAllDetails = async (req, res) => {
         let campus = req.query.campus || [];
         if (typeof campus === 'string') campus = [campus];
 
-        let department = null;
+        const syncStatus = req.query.syncStatus || null;
+        let department = req.query.department || null;
+        
         if (req.userRole === 'COORDINATOR') {
             department = req.user.department;
             // If coordinator, they can only see their campus if it's not already filtered
@@ -32,8 +34,8 @@ export const getAllDetails = async (req, res) => {
         }
 
         const [details, total] = await Promise.all([
-            LeetCodeDetail.getAll(limit, offset, search, sortBy, sortOrder, campus, department),
-            LeetCodeDetail.countAll(search, campus, department)
+            LeetCodeDetail.getAll(limit, offset, search, sortBy, sortOrder, campus, department, syncStatus),
+            LeetCodeDetail.countAll(search, campus, department, syncStatus)
         ]);
 
         res.json({
@@ -183,9 +185,15 @@ export const syncAllDetails = async (req, res) => {
     }
 
     try {
-        // Fetch ALL details that have either a username or a profile URL
-        const details = await LeetCodeDetail.getAll();
-        const recordsToSync = details.filter(d => d.leetcode_username || d.leet_code_profile);
+        const syncStatus = req.query.syncStatus || null;
+        
+        // Fetch ALL details that have either a valid username or a profile URL
+        const details = await LeetCodeDetail.getAll(null, null, '', 'created_at', 'DESC', [], null, syncStatus);
+        const recordsToSync = details.filter(d => {
+            const hasUsername = d.leetcode_username && d.leetcode_username.trim() !== '' && d.leetcode_username !== '-';
+            const hasProfile = d.leet_code_profile && d.leet_code_profile.trim() !== '' && d.leet_code_profile !== '-';
+            return hasUsername || hasProfile;
+        });
 
         if (recordsToSync.length === 0) {
             if (res) return res.json({ message: 'No records found with LeetCode profile URLs' });
@@ -244,8 +252,11 @@ export const syncDetailById = async (req, res) => {
         const record = await LeetCodeDetail.getById(req.params.id);
         if (!record) return res.status(404).json({ message: 'Record not found' });
         
-        if (!record.leet_code_profile) {
-            return res.status(400).json({ message: 'No profile URL found for this record' });
+        const hasUsername = record.leetcode_username && record.leetcode_username.trim() !== '' && record.leetcode_username !== '-';
+        const hasProfile = record.leet_code_profile && record.leet_code_profile.trim() !== '' && record.leet_code_profile !== '-';
+        
+        if (!hasUsername && !hasProfile) {
+            return res.status(400).json({ message: 'No valid LeetCode username or profile URL found' });
         }
 
         await syncSingleRecord(record);
