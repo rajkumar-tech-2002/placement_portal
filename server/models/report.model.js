@@ -246,5 +246,104 @@ class Report {
         `);
         return rows;
     }
+
+    static async getLeetCodeStudents(limit, offset, search = '', campus = [], department = '') {
+        let query = `
+            SELECT *
+            FROM leetcode_details
+            WHERE 1=1
+        `;
+        let countQuery = `
+            SELECT COUNT(*) as total
+            FROM leetcode_details
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (search) {
+            const searchClause = ` AND (name LIKE ? OR reg_no LIKE ?)`;
+            query += searchClause;
+            countQuery += searchClause;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus.length > 0) {
+            const campusClause = ` AND campus_details IN (?)`;
+            query += campusClause;
+            countQuery += campusClause;
+            params.push(campus);
+        }
+
+        if (department) {
+            const deptClause = ` AND department = ?`;
+            query += deptClause;
+            countQuery += deptClause;
+            params.push(department);
+        }
+
+        query += ` ORDER BY campus_details ASC, department ASC, name ASC`;
+
+        if (limit !== undefined && offset !== undefined) {
+            query += ` LIMIT ?, ?`;
+            params.push(offset, parseInt(limit));
+        }
+
+        const [rows] = await pool.query(query, params);
+        
+        // Count request doesn't need LIMIT params
+        const countParams = params.slice(0, params.length - (limit !== undefined ? 2 : 0));
+        const [[{ total }]] = await pool.query(countQuery, countParams);
+
+        return { rows, total };
+    }
+
+    static async getLeetCodeConsolidatedReport(limit, offset, search = '', campus = [], department = '') {
+        let baseQuery = `
+            FROM leetcode_details
+            WHERE last_contest_name IS NOT NULL AND last_contest_name != ''
+        `;
+        const params = [];
+
+        if (search) {
+            baseQuery += ` AND (last_contest_name LIKE ? OR last_contest_date LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (campus && campus.length > 0) {
+            baseQuery += ` AND campus_details IN (?)`;
+            params.push(campus);
+        }
+
+        if (department) {
+            baseQuery += ` AND department = ?`;
+            params.push(department);
+        }
+
+        const countQuery = `SELECT COUNT(*) as total FROM (SELECT 1 ${baseQuery} GROUP BY campus_details, department, last_contest_date, last_contest_name) as sub`;
+        const [countResult] = await pool.query(countQuery, params);
+        const total = countResult[0].total;
+
+        let query = `
+            SELECT 
+                CONCAT(campus_details, '-', department, '-', last_contest_name) as report_id,
+                campus_details, 
+                department, 
+                last_contest_date, 
+                last_contest_name,
+                SUM(CASE WHEN last_contest_solved = 1 THEN 1 ELSE 0 END) as solved_1,
+                SUM(CASE WHEN last_contest_solved = 2 THEN 1 ELSE 0 END) as solved_2,
+                SUM(CASE WHEN last_contest_solved = 3 THEN 1 ELSE 0 END) as solved_3,
+                SUM(CASE WHEN last_contest_solved = 4 THEN 1 ELSE 0 END) as solved_4,
+                COUNT(*) as total_students
+            ${baseQuery}
+            GROUP BY campus_details, department, last_contest_date, last_contest_name
+            ORDER BY last_contest_date DESC, campus_details ASC, department ASC
+            LIMIT ? OFFSET ?
+        `;
+        params.push(limit, offset);
+
+        const [rows] = await pool.query(query, params);
+        return { rows, total };
+    }
 }
 export default Report;

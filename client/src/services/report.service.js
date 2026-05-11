@@ -31,3 +31,13 @@ export const getPackageDistReport = async () => {
     const response = await api.get('/reports/package-dist');
     return response.data;
 };
+
+export const getLeetCodeReport = async (params) => {
+    const response = await api.get('/reports/leetcode', { params });
+    return response.data;
+};
+
+export const getLeetCodeConsolidatedReport = async (params) => {
+    const response = await api.get('/reports/leetcode-consolidated', { params });
+    return response.data;
+};

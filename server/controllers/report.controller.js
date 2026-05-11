@@ -105,3 +105,57 @@ export const getPackageDistReport = async (req, res) => {
         return errorResponse(res, error.message);
     }
 };
+
+export const getLeetCodeReport = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        const department = req.query.department || '';
+        
+        let campus = req.query.campus || [];
+        if (typeof campus === 'string') {
+            campus = [campus];
+        }
+
+        const { rows, total } = await Report.getLeetCodeStudents(limit, offset, search, campus, department);
+        
+        return successResponse(res, { 
+            report: rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};
+
+export const getLeetCodeConsolidatedReport = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        const department = req.query.department || '';
+        
+        let campus = req.query.campus || [];
+        if (typeof campus === 'string') {
+            campus = [campus];
+        }
+
+        const { rows, total } = await Report.getLeetCodeConsolidatedReport(limit, offset, search, campus, department);
+        
+        return successResponse(res, { 
+            report: rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};

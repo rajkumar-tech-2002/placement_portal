@@ -21,9 +21,9 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
         { name: 'Companies', path: '/admin/companies', icon: Briefcase },
         { name: 'Student Details', path: '/admin/student-details', icon: Users },
         { name: 'LeetCode ', path: '/admin/leetcode-details', icon: Code2 },
-        { name: 'Reports', path: '/admin/reports', icon: FileBarChart },
         { name: 'Placement Entry', path: '/admin/placement-record', icon: Trophy },
         { name: 'Users', path: '/admin/create-user', icon: UserPlus },
+        { name: 'Reports', path: '/admin/reports', icon: FileBarChart },
     ];
 
     // const studentLinks = [

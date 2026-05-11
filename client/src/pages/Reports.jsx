@@ -5,7 +5,9 @@ import {
     getPlacedReport, 
     getCompanyWiseReport, 
     getPackageDistReport,
-    getWillingFilters
+    getWillingFilters,
+    getLeetCodeReport,
+    getLeetCodeConsolidatedReport
 } from '../services/report.service';
 import { 
     Users, 
@@ -28,7 +30,10 @@ import {
     MapPin,
     GraduationCap,
     Grid,
-    Building
+    Building,
+    Code2,
+    Globe,
+    ExternalLink
 } from 'lucide-react';
 
 import { 
@@ -102,6 +107,21 @@ const Reports = () => {
     const [selectedPlacedDept, setSelectedPlacedDept] = useState('');
     const [selectedPlacedCompany, setSelectedPlacedCompany] = useState('');
 
+    // LeetCode Table State
+    const [leetcodeData, setLeetcodeData] = useState([]);
+    const [leetcodePage, setLeetcodePage] = useState(1);
+    const [leetcodeLimit, setLeetcodeLimit] = useState(10);
+    const [leetcodeTotalPages, setLeetcodeTotalPages] = useState(0);
+    const [leetcodeTotal, setLeetcodeTotal] = useState(0);
+    const [selectedLeetcodeCampuses, setSelectedLeetcodeCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
+    const [selectedLeetcodeDept, setSelectedLeetcodeDept] = useState('');
+    const [leetcodeView, setLeetcodeView] = useState('individual'); // 'individual' or 'consolidated'
+    const [leetcodeConsolidatedData, setLeetcodeConsolidatedData] = useState([]);
+    const [leetcodeConsolidatedPage, setLeetcodeConsolidatedPage] = useState(1);
+    const [leetcodeConsolidatedLimit, setLeetcodeConsolidatedLimit] = useState(10);
+    const [leetcodeConsolidatedTotalPages, setLeetcodeConsolidatedTotalPages] = useState(0);
+    const [leetcodeConsolidatedTotal, setLeetcodeConsolidatedTotal] = useState(0);
+
 
     const fetchFilters = async () => {
         try {
@@ -149,6 +169,36 @@ const Reports = () => {
         }
     };
 
+    const fetchLeetcode = async () => {
+        try {
+            if (leetcodeView === 'individual') {
+                const data = await getLeetCodeReport({
+                    page: leetcodePage,
+                    limit: leetcodeLimit,
+                    search: debouncedSearch,
+                    campus: selectedLeetcodeCampuses,
+                    department: selectedLeetcodeDept
+                });
+                setLeetcodeData(data.report);
+                setLeetcodeTotal(data.total);
+                setLeetcodeTotalPages(data.totalPages);
+            } else {
+                const data = await getLeetCodeConsolidatedReport({
+                    page: leetcodeConsolidatedPage,
+                    limit: leetcodeConsolidatedLimit,
+                    search: debouncedSearch,
+                    campus: selectedLeetcodeCampuses,
+                    department: selectedLeetcodeDept
+                });
+                setLeetcodeConsolidatedData(data.report);
+                setLeetcodeConsolidatedTotal(data.total);
+                setLeetcodeConsolidatedTotalPages(data.totalPages);
+            }
+        } catch (error) {
+            toast.error('Failed to fetch LeetCode report');
+        }
+    };
+
 
     const fetchData = async () => {
         setLoading(true);
@@ -191,6 +241,8 @@ const Reports = () => {
             setDebouncedSearch(searchTerm);
             setWillingPage(1);
             setPlacedPage(1);
+            setLeetcodePage(1);
+            setLeetcodeConsolidatedPage(1);
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
@@ -201,8 +253,10 @@ const Reports = () => {
             fetchWilling();
         } else if (activeTab === 'placed') {
             fetchPlaced();
+        } else if (activeTab === 'leetcode') {
+            fetchLeetcode();
         }
-    }, [activeTab, willingPage, willingLimit, placedPage, placedLimit, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany]);
+    }, [activeTab, willingPage, willingLimit, placedPage, placedLimit, leetcodePage, leetcodeLimit, leetcodeConsolidatedPage, leetcodeConsolidatedLimit, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany, selectedLeetcodeCampuses, selectedLeetcodeDept, leetcodeView]);
 
 
     const chartOptions = {
@@ -349,6 +403,170 @@ const Reports = () => {
         }
     ];
 
+    const leetcodeColumns = [
+        { 
+            header: 'S.NO', 
+            key: 'sno', 
+            render: (_, __, index) => <span className="font-bold text-slate-500">{index + 1 + (leetcodePage - 1) * leetcodeLimit}</span>
+        },
+        { 
+            header: 'REGISTER NO', 
+            key: 'reg_no', 
+            render: (val) => <span className="font-mono text-sm font-bold text-primary-600">{val}</span>
+        },
+        { 
+            header: 'STUDENT NAME', 
+            key: 'name', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
+        { 
+            header: 'CAMPUS', 
+            key: 'campus_details',
+            render: (val) => (
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                }`}>
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
+                </span>
+            )
+        },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
+        { 
+            header: 'PROFILE', 
+            key: 'leetcode_username',
+            render: (val, row) => (
+                <a 
+                    href={row.leet_code_profile || (val ? `https://leetcode.com/u/${val}/` : '#')} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary-600 hover:text-primary-700 flex items-center gap-1.5 transition-colors"
+                >
+                    <ExternalLink className="w-4 h-4" />
+                    <span className="text-sm font-bold">Profile</span>
+                </a>
+            )
+        },
+        { 
+            header: 'LAST CONTEST', 
+            key: 'last_contest_date',
+            render: (_, row) => row.last_contest_name ? (
+                <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[150px]" title={row.last_contest_name}>{row.last_contest_name}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{formatDate(row.last_contest_date)}</span>
+                </div>
+            ) : (
+                <span className="text-slate-400 italic text-xs">No recent contest</span>
+            )
+        },
+        { 
+            header: 'SOLVED', 
+            key: 'last_contest_solved',
+            render: (val, row) => row.last_contest_name ? (
+                <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                    {val}/{row.last_contest_total_questions || 4}
+                </span>
+            ) : '-'
+        },
+        { 
+            header: 'RATING', 
+            key: 'contest_rating', 
+            render: (val) => (
+                <div className="flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{val || 0}</span>
+                </div>
+            )
+        },
+        { 
+            header: 'GLOBAL RANK', 
+            key: 'global_ranking', 
+            render: (val) => (
+                <div className="flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                        {val?.toLocaleString() || '-'}
+                    </span>
+                </div>
+            )
+        },
+        { 
+            header: 'LAST RANK', 
+            key: 'last_contest_rank',
+            render: (val) => val ? (
+                <span className="px-2 py-0.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 font-bold rounded text-[10px] border border-primary-100 dark:border-primary-800/50">
+                    #{val}
+                </span>
+            ) : '-'
+        }
+    ];
+
+    const leetcodeConsolidatedColumns = [
+        { 
+            header: 'S.NO', 
+            key: 'sno', 
+            render: (_, __, index) => <span className="font-bold text-slate-500">{index + 1 + (leetcodeConsolidatedPage - 1) * leetcodeConsolidatedLimit}</span>
+        },
+        { 
+            header: 'CAMPUS', 
+            key: 'campus_details',
+            render: (val) => (
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    val === 'NEC' ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50' :
+                    val === 'NCT' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50' :
+                    'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                }`}>
+                    {val === 'Both' ? 'NEC, NCT' : (val || 'N/A')}
+                </span>
+            )
+        },
+        { 
+            header: 'DEPARTMENT', 
+            key: 'department', 
+            render: (val) => <span className="font-bold text-slate-900 dark:text-white">{val}</span>
+        },
+        { 
+            header: 'CONTEST NAME', 
+            key: 'last_contest_name',
+            render: (val) => <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{val}</span>
+        },
+        { 
+            header: 'CONTEST DATE', 
+            key: 'last_contest_date',
+            render: (val) => <span className="text-[10px] text-slate-500 font-medium">{formatDate(val)}</span>
+        },
+        { 
+            header: '1 SOLVED', 
+            key: 'solved_1',
+            render: (val) => <span className="font-bold text-slate-700 dark:text-slate-300">{val || 0}</span>
+        },
+        { 
+            header: '2 SOLVED', 
+            key: 'solved_2',
+            render: (val) => <span className="font-bold text-slate-700 dark:text-slate-300">{val || 0}</span>
+        },
+        { 
+            header: '3 SOLVED', 
+            key: 'solved_3',
+            render: (val) => <span className="font-bold text-slate-700 dark:text-slate-300">{val || 0}</span>
+        },
+        { 
+            header: '4 SOLVED', 
+            key: 'solved_4',
+            render: (val) => <span className="font-bold text-slate-700 dark:text-slate-300">{val || 0}</span>
+        },
+        { 
+            header: 'TOTAL STUDENTS', 
+            key: 'total_students',
+            render: (val) => <span className="px-2 py-0.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 font-black rounded text-[10px] border border-primary-100 dark:border-primary-800/50">{val}</span>
+        }
+    ];
+
     const filteredWilling = willingData;
     const filteredPlaced = placedData;
 
@@ -405,6 +623,87 @@ const Reports = () => {
                 
                 filename = 'Placements_Record_Report.xlsx';
                 title = 'Placements Record Report';
+            } else if (activeTab === 'leetcode') {
+                if (leetcodeView === 'individual') {
+                    const data = await getLeetCodeReport({
+                        page: 1,
+                        limit: 1000000,
+                        search: debouncedSearch,
+                        campus: selectedLeetcodeCampuses,
+                        department: selectedLeetcodeDept
+                    });
+
+                    dataToExport = data.report.map((item, index) => ({
+                        'S.NO': index + 1,
+                        'REGISTER NO': item.reg_no || '',
+                        'STUDENT NAME': item.name || '',
+                        'CAMPUS': item.campus_details === 'Both' ? 'NEC, NCT' : (item.campus_details || 'N/A'),
+                        'DEPARTMENT': item.department || '',
+                        'LEETCODE PROFILE': item.leetcode_username ? `https://leetcode.com/u/${item.leetcode_username}/` : (item.leet_code_profile || ''),
+                        'LAST CONTEST DATE': item.last_contest_date ? formatDate(item.last_contest_date) : 'N/A',
+                        'LAST CONTEST NAME': item.last_contest_name || 'N/A',
+                        'LAST CONTEST SOLVED': item.last_contest_name ? `${item.last_contest_solved || 0}/${item.last_contest_total_questions || 4}` : 'N/A',
+                        'CONTEST RATING': item.contest_rating || 0,
+                        'GLOBAL RANK': item.global_ranking || 'N/A',
+                        'LAST CONTEST RANK': item.last_contest_rank || 'N/A'
+                    }));
+
+                    filename = 'LeetCode_Performance_Report.xlsx';
+                    title = 'LeetCode Performance Report';
+                } else {
+                    const data = await getLeetCodeConsolidatedReport({
+                        page: 1,
+                        limit: 1000000,
+                        search: debouncedSearch,
+                        campus: selectedLeetcodeCampuses,
+                        department: selectedLeetcodeDept
+                    });
+
+                    // Group by contest
+                    const groupedData = {};
+                    data.report.forEach(item => {
+                        const key = `${item.last_contest_name} (${formatDate(item.last_contest_date)})`;
+                        if (!groupedData[key]) groupedData[key] = [];
+                        groupedData[key].push(item);
+                    });
+
+                    const aoaData = [];
+                    Object.entries(groupedData).forEach(([contestInfo, students]) => {
+                        // Header for the contest
+                        aoaData.push([contestInfo]);
+                        // Table headers for this contest
+                        aoaData.push(['S.NO', 'CAMPUS', 'DEPARTMENT', '1 SOLVED', '2 SOLVED', '3 SOLVED', '4 SOLVED', 'TOTAL STUDENTS']);
+                        
+                        students.forEach((item, index) => {
+                            aoaData.push([
+                                index + 1,
+                                item.campus_details === 'Both' ? 'NEC, NCT' : (item.campus_details || 'N/A'),
+                                item.department || '',
+                                item.solved_1 || 0,
+                                item.solved_2 || 0,
+                                item.solved_3 || 0,
+                                item.solved_4 || 0,
+                                item.total_students || 0
+                            ]);
+                        });
+                        // Empty row between contests
+                        aoaData.push([]);
+                    });
+
+                    const wsTitle = 'LeetCode Consolidated Performance Report';
+                    const ws = XLSX.utils.aoa_to_sheet([
+                        [wsTitle],
+                        [`Exported On: ${formatDate(new Date())} ${new Date().toLocaleTimeString()}`],
+                        [],
+                        ...aoaData
+                    ]);
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                    XLSX.writeFile(wb, 'LeetCode_Consolidated_Report.xlsx');
+                    toast.success('Report exported successfully!');
+                    return; // Exit early since we handled the whole wb here
+                }
             }
 
             if (dataToExport.length === 0) {
@@ -415,7 +714,8 @@ const Reports = () => {
             const ws = XLSX.utils.json_to_sheet([]);
             XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
             
-            const currentDateTime = new Date().toLocaleString();
+            const now = new Date();
+            const currentDateTime = `${formatDate(now)} ${now.toLocaleTimeString()}`;
             XLSX.utils.sheet_add_aoa(ws, [[`Exported On: ${currentDateTime}`]], { origin: 'A2' });
             XLSX.utils.sheet_add_aoa(ws, [[]], { origin: 'A3' });
             XLSX.utils.sheet_add_json(ws, dataToExport, { origin: 'A4' });
@@ -451,13 +751,13 @@ const Reports = () => {
                     <button onClick={fetchData} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 dark:border-slate-700">
                         <TrendingUp className="w-5 h-5" />
                     </button>
-                    {(activeTab === 'willing' || activeTab === 'placed') && (
+                    {(activeTab === 'willing' || activeTab === 'placed' || activeTab === 'leetcode') && (
                         <button 
                             onClick={handleExport}
                             className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold"
                         >
                             <Download className="w-5 h-5" />
-                            {activeTab === 'willing' ? 'Export Willing Students' : 'Export Placements'}
+                            {activeTab === 'willing' ? 'Export Willing' : activeTab === 'placed' ? 'Export Placements' : leetcodeView === 'individual' ? 'Export LeetCode Report' : 'Export Consolidated Report'}
                         </button>
                     )}
                 </div>
@@ -469,6 +769,7 @@ const Reports = () => {
                     { id: 'insights', label: 'Overall', icon: Target },
                     { id: 'willing', label: 'Placement Willingness', icon: Users },
                     { id: 'placed', label: 'Placements Record', icon: Trophy },
+                    { id: 'leetcode', label: 'LeetCode Reports', icon: Code2 },
                     { id: 'companies', label: 'Company Metrics', icon: Briefcase }
                 ].map(tab => (
                     <button
@@ -668,6 +969,92 @@ const Reports = () => {
                             onPageChange: setPlacedPage
                         }}
                         idKey="reg_no"
+                        selectable={false}
+                    />
+                </div>
+            )}
+
+
+            {/* LeetCode Reports Tab */}
+            {activeTab === 'leetcode' && (
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                    {/* View Toggle and Filters */}
+                    <div className="flex flex-col gap-6">
+                        <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl w-fit">
+                            <button 
+                                onClick={() => setLeetcodeView('individual')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${leetcodeView === 'individual' ? 'bg-white dark:bg-slate-900 text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            >
+                                Individual Report
+                            </button>
+                            <button 
+                                onClick={() => setLeetcodeView('consolidated')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${leetcodeView === 'consolidated' ? 'bg-white dark:bg-slate-900 text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            >
+                                Consolidated Report
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {authUser?.campus === 'Both' && (
+                                <div className="md:col-span-1">
+                                    <CampusFilter 
+                                        selectedCampuses={selectedLeetcodeCampuses} 
+                                        onChange={(val) => {
+                                            setSelectedLeetcodeCampuses(val);
+                                            setSelectedLeetcodeDept('');
+                                        }} 
+                                    />
+                                </div>
+                            )}
+                            
+                            <div className="md:col-span-1">
+                                <DepartmentFilter 
+                                    selectedCampuses={selectedLeetcodeCampuses} 
+                                    selectedDepartment={selectedLeetcodeDept} 
+                                    onChange={setSelectedLeetcodeDept} 
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                                <InputLabel icon={Search} text="Search Contest" className="mb-0 mt-1" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Contest Name or Date..." 
+                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500/40 outline-none transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DataTable
+                        columns={leetcodeView === 'individual' ? leetcodeColumns : leetcodeConsolidatedColumns}
+                        data={leetcodeView === 'individual' ? leetcodeData : leetcodeConsolidatedData}
+                        loading={loading}
+                        onLimitChange={(lvl) => {
+                            if (leetcodeView === 'individual') {
+                                setLeetcodeLimit(lvl);
+                                setLeetcodePage(1);
+                            } else {
+                                setLeetcodeConsolidatedLimit(lvl);
+                                setLeetcodeConsolidatedPage(1);
+                            }
+                        }}
+                        limit={leetcodeView === 'individual' ? leetcodeLimit : leetcodeConsolidatedLimit}
+                        pagination={leetcodeView === 'individual' ? {
+                            page: leetcodePage,
+                            totalPages: leetcodeTotalPages,
+                            totalItems: leetcodeTotal,
+                            onPageChange: setLeetcodePage
+                        } : {
+                            page: leetcodeConsolidatedPage,
+                            totalPages: leetcodeConsolidatedTotalPages,
+                            totalItems: leetcodeConsolidatedTotal,
+                            onPageChange: setLeetcodeConsolidatedPage
+                        }}
+                        idKey={leetcodeView === 'individual' ? "reg_no" : "report_id"}
                         selectable={false}
                     />
                 </div>
