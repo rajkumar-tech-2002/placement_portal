@@ -17,6 +17,7 @@ import DriveExecution from '../pages/Coordinator/DriveExecution';
 import DriveAttendance from '../pages/Coordinator/DriveAttendance';
 import LeetCodeDetails from '../pages/Admin/LeetCodeDetails';
 import PlacementRecord from '../pages/PlacementRecord';
+import PlacementCount from '../pages/Coordinator/PlacementCount';
 
 const AppRoutes = () => {
     return (
@@ -45,6 +46,7 @@ const AppRoutes = () => {
                 <Route path="drives/:id/attendance" element={<DriveAttendance />} />
                 <Route path="placement-record" element={<PlacementRecord />} />
                 <Route path="leetcode-details" element={<LeetCodeDetails />} />
+                <Route path="placement-count" element={<PlacementCount />} />
             </Route>
 
             <Route path="/" element={<Navigate to="/login" replace />} />

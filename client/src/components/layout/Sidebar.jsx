@@ -38,6 +38,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, isSidebarCollapsed }) => {
         { name: 'Placement Entry', path: '/coordinator/placement-record', icon: Trophy },
         { name: 'LeetCode', path: '/coordinator/leetcode-details', icon: Code2 },
         { name: 'Drive Execution', path: '/coordinator/drives', icon: ClipboardCheck },
+        { name: 'Placement Count', path: '/coordinator/placement-count', icon: FileBarChart },
     ];
 
     const getLinks = () => {

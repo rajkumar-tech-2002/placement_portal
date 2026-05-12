@@ -159,3 +159,13 @@ export const getLeetCodeConsolidatedReport = async (req, res) => {
         return errorResponse(res, error.message);
     }
 };
+
+export const getPlacementConsolidatedReport = async (req, res) => {
+    try {
+        const { campus } = req.query;
+        const report = await Report.getPlacementConsolidatedReport(campus || req.user.campus);
+        return successResponse(res, { report });
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};

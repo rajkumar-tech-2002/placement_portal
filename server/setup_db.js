@@ -3,7 +3,7 @@ import pool from './config/db.config.js';
 const setupTables = async () => {
     try {
         console.log('Starting table setup...');
-        
+
         // 1. Create drive_willingness table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS drive_willingness (
@@ -25,7 +25,7 @@ const setupTables = async () => {
         // 2. Verify companies table has website and description
         const [columns] = await pool.query('DESCRIBE companies');
         const fields = columns.map(c => c.Field);
-        
+
         if (!fields.includes('website')) {
             await pool.query('ALTER TABLE companies ADD COLUMN website VARCHAR(255) AFTER name');
             console.log('Added website column to companies.');

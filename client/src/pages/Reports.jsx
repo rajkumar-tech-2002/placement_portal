@@ -7,8 +7,10 @@ import {
     getPackageDistReport,
     getWillingFilters,
     getLeetCodeReport,
-    getLeetCodeConsolidatedReport
+    getLeetCodeConsolidatedReport,
+    getPlacementConsolidatedReport
 } from '../services/report.service';
+import { BASE_URL } from '../services/api.service';
 import { 
     Users, 
     TrendingUp, 
@@ -122,6 +124,10 @@ const Reports = () => {
     const [leetcodeConsolidatedTotalPages, setLeetcodeConsolidatedTotalPages] = useState(0);
     const [leetcodeConsolidatedTotal, setLeetcodeConsolidatedTotal] = useState(0);
 
+    // Consolidate Table State
+    const [consolidateData, setConsolidateData] = useState([]);
+    const [selectedConsolidateCampuses, setSelectedConsolidateCampuses] = useState(authUser?.campus !== 'Both' ? [authUser?.campus] : []);
+
 
     const fetchFilters = async () => {
         try {
@@ -199,6 +205,20 @@ const Reports = () => {
         }
     };
 
+    const fetchConsolidate = async () => {
+        setLoading(true);
+        try {
+            const data = await getPlacementConsolidatedReport({
+                campus: selectedConsolidateCampuses.length > 0 ? selectedConsolidateCampuses[0] : 'Both'
+            });
+            setConsolidateData(data.report);
+        } catch (error) {
+            toast.error('Failed to fetch consolidated report');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     const fetchData = async () => {
         setLoading(true);
@@ -255,8 +275,10 @@ const Reports = () => {
             fetchPlaced();
         } else if (activeTab === 'leetcode') {
             fetchLeetcode();
+        } else if (activeTab === 'consolidate') {
+            fetchConsolidate();
         }
-    }, [activeTab, willingPage, willingLimit, placedPage, placedLimit, leetcodePage, leetcodeLimit, leetcodeConsolidatedPage, leetcodeConsolidatedLimit, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany, selectedLeetcodeCampuses, selectedLeetcodeDept, leetcodeView]);
+    }, [activeTab, willingPage, willingLimit, placedPage, placedLimit, leetcodePage, leetcodeLimit, leetcodeConsolidatedPage, leetcodeConsolidatedLimit, debouncedSearch, selectedCampuses, selectedDept, selectedDomain, selectedPlacedCampuses, selectedPlacedDept, selectedPlacedCompany, selectedLeetcodeCampuses, selectedLeetcodeDept, leetcodeView, selectedConsolidateCampuses]);
 
 
     const chartOptions = {
@@ -704,6 +726,37 @@ const Reports = () => {
                     toast.success('Report exported successfully!');
                     return; // Exit early since we handled the whole wb here
                 }
+            } else if (activeTab === 'consolidate') {
+                const data = await getPlacementConsolidatedReport({
+                    campus: selectedConsolidateCampuses.length > 0 ? selectedConsolidateCampuses[0] : 'Both'
+                });
+
+                dataToExport = data.report.map((item, index) => {
+                    const placed = (Number(item['7l'] || 0) + Number(item['6l'] || 0) + Number(item['5l'] || 0) + Number(item['4l'] || 0) + Number(item['3l'] || 0) + Number(item['2l'] || 0) + Number(item['1l'] || 0));
+                    const balance = Number(item.interested || 0) - placed;
+                    const percentage = item.interested > 0 ? ((placed / item.interested) * 100).toFixed(2) : '0.00';
+
+                    return {
+                        'S.NO': index + 1,
+                        'DEPARTMENT': item.department || '',
+                        'TOTAL STRENGTH': item.strength || 0,
+                        'INTERESTED COUNT': item.interested || 0,
+                        '>=7L': item['7l'] || 0,
+                        '>=6L': item['6l'] || 0,
+                        '>=5L': item['5l'] || 0,
+                        '>=4L': item['4l'] || 0,
+                        '>=3L': item['3l'] || 0,
+                        '>=2L': item['2l'] || 0,
+                        '>=1L': item['1l'] || 0,
+                        'AVERAGE': item.average || '0.00',
+                        'PLACED': placed,
+                        'BALANCE': balance,
+                        'PERCENTAGE (%)': `${percentage}%`
+                    };
+                });
+
+                filename = 'Placement_Consolidated_Report.xlsx';
+                title = 'Placement Consolidated Report';
             }
 
             if (dataToExport.length === 0) {
@@ -757,7 +810,7 @@ const Reports = () => {
                             className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold"
                         >
                             <Download className="w-5 h-5" />
-                            {activeTab === 'willing' ? 'Export Willing' : activeTab === 'placed' ? 'Export Placements' : leetcodeView === 'individual' ? 'Export LeetCode Report' : 'Export Consolidated Report'}
+                            {activeTab === 'willing' ? 'Export Willing' : activeTab === 'placed' ? 'Export Placements' : activeTab === 'leetcode' ? (leetcodeView === 'individual' ? 'Export LeetCode Report' : 'Export Consolidated Report') : 'Export Consolidate Report'}
                         </button>
                     )}
                 </div>
@@ -770,6 +823,7 @@ const Reports = () => {
                     { id: 'willing', label: 'Placement Willingness', icon: Users },
                     { id: 'placed', label: 'Placements Record', icon: Trophy },
                     { id: 'leetcode', label: 'LeetCode Reports', icon: Code2 },
+                    { id: 'consolidate', label: 'Placement Consolidate', icon: Grid },
                     { id: 'companies', label: 'Company Metrics', icon: Briefcase }
                 ].map(tab => (
                     <button
@@ -1060,6 +1114,128 @@ const Reports = () => {
                 </div>
             )}
 
+
+            {/* Placement Consolidate Tab */}
+            {activeTab === 'consolidate' && (
+                <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                    {/* Filters Area */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {authUser?.campus === 'Both' && (
+                            <div className="md:col-span-1">
+                                <CampusFilter 
+                                    selectedCampuses={selectedConsolidateCampuses} 
+                                    onChange={(val) => {
+                                        setSelectedConsolidateCampuses(val);
+                                    }} 
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col min-h-[500px]">
+                        <div className="flex-1 overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-left border-collapse border border-slate-200 dark:border-slate-800">
+                                <thead>
+                                    <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                        {['S.No', 'Dept', 'Str', 'Int', '>=7L', '>=6L', '>=5L', '>=4L', '>=3L', '>=2L', '>=1L', 'Avg', 'Placed', 'Bal', '%', 'Signature'].map((head, idx) => (
+                                            <th key={idx} className={`p-4 text-xs font-black text-slate-400 uppercase tracking-widest border border-slate-100 dark:border-slate-800 text-center ${head === 'Dept' ? 'min-w-[150px]' : ''}`}>
+                                                {head}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {loading ? (
+                                        Array(5).fill(0).map((_, i) => (
+                                            <tr key={i} className="animate-pulse">
+                                                {Array(16).fill(0).map((_, idx) => (
+                                                    <td key={idx} className="p-4 border border-slate-100 dark:border-slate-800">
+                                                        <div className="h-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl"></div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    ) : consolidateData.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={16} className="p-20 text-center">
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-20 h-20 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-300">
+                                                        <Trophy className="w-10 h-10" />
+                                                    </div>
+                                                    <div className="text-slate-400 font-bold uppercase tracking-widest text-xs">No consolidated records found</div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        (() => {
+                                            const groupedRows = [];
+                                            const groups = {};
+                                            consolidateData.forEach(row => {
+                                                const baseDept = row.department.replace(/ - IT| - CORE/g, '').trim();
+                                                if (!groups[baseDept]) groups[baseDept] = [];
+                                                groups[baseDept].push(row);
+                                            });
+
+                                            let sNo = 1;
+                                            Object.entries(groups).forEach(([baseDept, rows]) => {
+                                                rows.forEach((row, idx) => {
+                                                    const placed = (Number(row['7l'] || 0) + Number(row['6l'] || 0) + Number(row['5l'] || 0) + Number(row['4l'] || 0) + Number(row['3l'] || 0) + Number(row['2l'] || 0) + Number(row['1l'] || 0));
+                                                    const balance = Number(row.interested || 0) - placed;
+                                                    const percentage = row.interested > 0 ? ((placed / row.interested) * 100).toFixed(2) : '0.00';
+
+                                                    groupedRows.push(
+                                                        <tr key={`${baseDept}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group">
+                                                            {idx === 0 && (
+                                                                <td rowSpan={rows.length} className="p-4 text-center font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                                                    {sNo++}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-4 font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 min-w-[150px]">
+                                                                {rows.length === 1 ? baseDept : row.department}
+                                                            </td>
+                                                            {idx === 0 && (
+                                                                <td rowSpan={rows.length} className="p-4 text-center font-bold text-primary-600 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                                                    {row.strength || 0}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-4 text-center font-bold text-purple-600 border border-slate-100 dark:border-slate-800">{row.interested || 0}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['7l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['6l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['5l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['4l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['3l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['2l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-bold border border-slate-100 dark:border-slate-800">{row['1l'] || ''}</td>
+                                                            <td className="p-4 text-center text-sm font-black text-blue-600 border border-slate-100 dark:border-slate-800">{parseFloat(row.average || 0).toFixed(2)}</td>
+                                                            <td className="p-4 text-center text-sm font-black text-emerald-600 border border-slate-100 dark:border-slate-800">{placed}</td>
+                                                            <td className="p-4 text-center text-sm font-black text-rose-600 border border-slate-100 dark:border-slate-800">{balance}</td>
+                                                            <td className="p-4 text-center text-sm font-black text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">{percentage}%</td>
+                                                            {idx === 0 && (
+                                                                <td rowSpan={rows.length} className="p-2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
+                                                                    {row.signature ? (
+                                                                        <img 
+                                                                            src={`${BASE_URL}${row.signature}`} 
+                                                                            alt="Signature" 
+                                                                            className="h-10 mx-auto object-contain mix-blend-multiply dark:mix-blend-normal"
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-slate-400 italic">No Signature</span>
+                                                                    )}
+                                                                </td>
+                                                            )}
+                                                        </tr>
+                                                    );
+                                                });
+                                            });
+                                            return groupedRows;
+                                        })()
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Company Metrics Tab */}
             {activeTab === 'companies' && (

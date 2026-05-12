@@ -1,13 +1,16 @@
 import axios from 'axios';
 
+export const BASE_URL = 'http://localhost:5005';
+export const API_URL = `${BASE_URL}/api`;
+
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: API_URL,
 });
 
 // Add a request interceptor to include the JWT token
 api.interceptors.request.use(
     (config) => {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

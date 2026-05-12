@@ -41,3 +41,8 @@ export const getLeetCodeConsolidatedReport = async (params) => {
     const response = await api.get('/reports/leetcode-consolidated', { params });
     return response.data;
 };
+
+export const getPlacementConsolidatedReport = async (params) => {
+    const response = await api.get('/reports/placement-consolidated', { params });
+    return response.data;
+};

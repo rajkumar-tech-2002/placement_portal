@@ -8,7 +8,8 @@ import {
     getPackageDistReport,
     getWillingFilters,
     getLeetCodeReport,
-    getLeetCodeConsolidatedReport
+    getLeetCodeConsolidatedReport,
+    getPlacementConsolidatedReport
 } from '../controllers/report.controller.js';
 import { verifyToken, isAdmin } from '../middleware/auth.middleware.js';
 
@@ -23,6 +24,7 @@ router.get('/company-wise', verifyToken, isAdmin, getCompanyWiseReport);
 router.get('/package-dist', verifyToken, isAdmin, getPackageDistReport);
 router.get('/leetcode', verifyToken, isAdmin, getLeetCodeReport);
 router.get('/leetcode-consolidated', verifyToken, isAdmin, getLeetCodeConsolidatedReport);
+router.get('/placement-consolidated', verifyToken, isAdmin, getPlacementConsolidatedReport);
 
 export default router;
 

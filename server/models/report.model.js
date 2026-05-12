@@ -345,5 +345,20 @@ class Report {
         const [rows] = await pool.query(query, params);
         return { rows, total };
     }
+
+    static async getPlacementConsolidatedReport(campus = 'Both') {
+        const isBoth = campus === 'Both';
+        let query = `SELECT * FROM placement_consolidate_report`;
+        const params = [];
+
+        if (!isBoth) {
+            query += ` WHERE campus = ?`;
+            params.push(campus);
+        }
+
+        query += ` ORDER BY campus ASC, department ASC`;
+        const [rows] = await pool.query(query, params);
+        return rows;
+    }
 }
 export default Report;
