@@ -23,3 +23,23 @@ export const createRole = async (req, res) => {
         return errorResponse(res, error.message);
     }
 };
+export const updateRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+        await Role.update(id, role);
+        return successResponse(res, null, 'Role updated successfully');
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};
+
+export const deleteRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Role.delete(id);
+        return successResponse(res, null, 'Role deleted successfully');
+    } catch (error) {
+        return errorResponse(res, error.message);
+    }
+};

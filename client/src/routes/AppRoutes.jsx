@@ -10,6 +10,10 @@ import StudentDetails from '../pages/Admin/StudentDetails';
 import CreateUser from '../pages/Admin/CreateUser';
 import EligibleStudents from '../pages/Admin/EligibleStudents';
 import WillingStudents from '../pages/Admin/WillingStudents';
+import SyncSettings from '../pages/SyncSettings';
+import ManageDepartments from '../pages/Admin/ManageDepartments';
+import ManageStaff from '../pages/Admin/ManageStaff';
+import ManageRoles from '../pages/Admin/ManageRoles';
 
 // Coordinator Pages
 import CoordinatorDashboard from '../pages/Coordinator/CoordinatorDashboard';
@@ -36,6 +40,10 @@ const AppRoutes = () => {
                 <Route path="placement-record" element={<PlacementRecord />} />
                 <Route path="create-user" element={<CreateUser />} />
                 <Route path="companies/:id/willing-students" element={<WillingStudents />} />
+                <Route path="sync-settings" element={<SyncSettings />} />
+                <Route path="departments-master" element={<ManageDepartments />} />
+                <Route path="staff-master" element={<ManageStaff />} />
+                <Route path="roles-master" element={<ManageRoles />} />
             </Route>
  
             {/* Coordinator Routes */}

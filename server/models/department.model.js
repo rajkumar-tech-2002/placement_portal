@@ -19,6 +19,28 @@ class Department {
         const [departments] = await pool.query(sql, params);
         return departments;
     }
+    static async create(data) {
+        const { campus, department } = data;
+        const [result] = await pool.query(
+            'INSERT INTO department (campus, department) VALUES (?, ?)',
+            [campus, department]
+        );
+        return result.insertId;
+    }
+
+    static async update(id, data) {
+        const { campus, department } = data;
+        await pool.query(
+            'UPDATE department SET campus = ?, department = ? WHERE id = ?',
+            [campus, department, id]
+        );
+        return true;
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM department WHERE id = ?', [id]);
+        return true;
+    }
 }
 
 export default Department;

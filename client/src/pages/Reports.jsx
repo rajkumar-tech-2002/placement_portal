@@ -58,6 +58,9 @@ import { formatDate } from '../utils/dateFormatter';
 import Pagination from '../components/common/Pagination';
 import DataTable from '../components/common/DataTable';
 import CampusFilter from '../components/common/CampusFilter';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import neclogo from '../assets/neclogo.png';
 import InputLabel from '../components/common/InputLabel';
 import SectionTitle from '../components/common/SectionTitle';
 import ModalTitle from '../components/common/ModalTitle';
@@ -785,6 +788,212 @@ const Reports = () => {
         }
     };
 
+    const getBase64ImageFromURL = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.setAttribute('crossOrigin', 'anonymous');
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const dataURL = canvas.toDataURL('image/png');
+                resolve(dataURL);
+            };
+            img.onerror = (error) => resolve(null); // Resolve with null on error
+            img.src = url;
+        });
+    };
+
+    const handlePDFExport = async () => {
+        const toastId = toast.loading('Preparing PDF report...');
+        try {
+            const data = await getPlacementConsolidatedReport({
+                campus: selectedConsolidateCampuses.length > 0 ? selectedConsolidateCampuses[0] : 'Both'
+            });
+
+            if (!data.report || data.report.length === 0) {
+                toast.error('No data available to export', { id: toastId });
+                return;
+            }
+
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+            
+            // Header Section
+            // Add Logo
+            doc.addImage(neclogo, 'PNG', pageWidth - 50, 10, 35, 20);
+
+            // Title
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(60, 60, 60);
+            doc.text('NANDHA ENGINEERING COLLEGE (Autonomous)', pageWidth / 2, 15, { align: 'center' });
+
+            // Subtitle
+            doc.setFontSize(12);
+            doc.setTextColor(79, 70, 229); // primary-600
+            
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            let academicYear = `AY ${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+            let batchRange = `2023 - 2027`;
+
+            const currentMonth = now.toLocaleString('default', { month: 'long' }).toUpperCase();
+            doc.text(`${academicYear} Monthly Report - ${currentMonth}`, pageWidth / 2, 22, { align: 'center' });
+
+            // Placement Cell Label
+            doc.setFontSize(13);
+            doc.setTextColor(219, 39, 119); // Pink-600
+            doc.text('Placement Cell:', 15, 32);
+
+            // Batch Details
+            doc.setFontSize(11);
+            doc.setTextColor(22, 163, 74); // Emerald-600
+            doc.text(`Batch (${batchRange}) - Final year - Strength, Interested students & Placement:`, 15, 40);
+
+            // Prepare Table Body with Grouping for S.No and Strength
+            const finalTableBody = [];
+            const groups = {};
+            data.report.forEach(row => {
+                const baseDept = row.department.replace(/ - IT| - CORE/g, '').trim();
+                const campus = row.campus_details || 'N/A';
+                const groupKey = `${baseDept}-${campus}`;
+                if (!groups[groupKey]) groups[groupKey] = [];
+                groups[groupKey].push(row);
+            });
+
+            let totalStr = 0, totalInt = 0, total7L = 0, total6L = 0, total5L = 0, total4L = 0, total3L = 0, total2L = 0, total1L = 0, totalAvg = 0, totalPlaced = 0, totalBal = 0;
+
+            let currentSNo = 1;
+            Object.entries(groups).forEach(([groupKey, rows]) => {
+                totalStr += Number(rows[0].strength || 0);
+                rows.forEach((row, idx) => {
+                    const placed = (Number(row['7l'] || 0) + Number(row['6l'] || 0) + Number(row['5l'] || 0) + Number(row['4l'] || 0) + Number(row['3l'] || 0) + Number(row['2l'] || 0) + Number(row['1l'] || 0));
+                    const balance = Number(row.interested || 0) - placed;
+                    const percentage = row.interested > 0 ? ((placed / row.interested) * 100).toFixed(2) : '0.00';
+
+                    totalInt += Number(row.interested || 0);
+                    total7L += Number(row['7l'] || 0);
+                    total6L += Number(row['6l'] || 0);
+                    total5L += Number(row['5l'] || 0);
+                    total4L += Number(row['4l'] || 0);
+                    total3L += Number(row['3l'] || 0);
+                    total2L += Number(row['2l'] || 0);
+                    total1L += Number(row['1l'] || 0);
+                    totalAvg += Number(row.average || 0);
+                    totalPlaced += placed;
+                    totalBal += balance;
+
+                    const rowData = [
+                        idx === 0 ? { content: currentSNo.toString(), rowSpan: rows.length } : null,
+                        { content: row.department || '', styles: { textColor: [0, 0, 0], fontStyle: 'bold' } },
+                        idx === 0 ? { content: (row.strength || 0).toString(), rowSpan: rows.length, styles: { textColor: [37, 99, 235], fontStyle: 'bold' } } : null,
+                        { content: (row.interested || 0).toString(), styles: { textColor: [219, 39, 119], fontStyle: 'bold' } },
+                        { content: row['7l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['6l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['5l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['4l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['3l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['2l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: row['1l'] || '', styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: parseFloat(row.average || 0).toFixed(2), styles: { textColor: [37, 99, 235], fontStyle: 'bold' } },
+                        { content: placed.toString(), styles: { textColor: [22, 163, 74], fontStyle: 'bold' } },
+                        { content: balance.toString(), styles: { textColor: [225, 29, 72], fontStyle: 'bold' } },
+                        { content: `${percentage}%`, styles: { fontStyle: 'bold' } },
+                        idx === 0 ? { content: '', rowSpan: rows.length, signature: row.signature } : null
+                    ].filter(cell => cell !== null);
+                    
+                    finalTableBody.push(rowData);
+                });
+                currentSNo++;
+            });
+
+            // Add Total Row to PDF
+            if (data.report.length > 0) {
+                const avgAvg = (totalAvg / data.report.length).toFixed(2);
+                const totalPercent = totalInt > 0 ? ((totalPlaced / totalInt) * 100).toFixed(2) : '0.00';
+
+                finalTableBody.push([
+                    { content: 'Total', colSpan: 2, styles: { fontStyle: 'bold', halign: 'center' } },
+                    { content: totalStr.toString(), styles: { fontStyle: 'bold', textColor: [37, 99, 235] } },
+                    { content: totalInt.toString(), styles: { fontStyle: 'bold', textColor: [219, 39, 119] } },
+                    { content: total7L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total6L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total5L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total4L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total3L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total2L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: total1L.toString(), styles: { fontStyle: 'bold' } },
+                    { content: avgAvg, styles: { fontStyle: 'bold', textColor: [37, 99, 235] } },
+                    { content: totalPlaced.toString(), styles: { fontStyle: 'bold', textColor: [22, 163, 74] } },
+                    { content: totalBal.toString(), styles: { fontStyle: 'bold', textColor: [225, 29, 72] } },
+                    { content: `${totalPercent}%`, styles: { fontStyle: 'bold' } },
+                    { content: '' }
+                ]);
+            }
+
+            // Pre-load signatures
+            const signatureMap = new Map();
+            const uniqueSignatures = [...new Set(data.report.map(r => r.signature).filter(Boolean))];
+            await Promise.all(uniqueSignatures.map(async sig => {
+                const base64 = await getBase64ImageFromURL(`${BASE_URL}${sig}`);
+                if (base64) signatureMap.set(sig, base64);
+            }));
+
+            autoTable(doc, {
+                head: [['S.No', 'Dept', 'Str', 'Int', '>=7L', '>=6L', '>=5L', '>=4L', '>=3L', '>=2L', '>=1L', 'Avg', 'Placed', 'Bal', '%', 'Signature']],
+                body: finalTableBody,
+                startY: 45,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8.5,
+                    cellPadding: 2.5,
+                    halign: 'center',
+                    valign: 'middle',
+                    lineWidth: 0.1,
+                    lineColor: [0, 0, 0], // Pure black borders
+                    textColor: [0, 0, 0]  // Default text color black
+                },
+                headStyles: {
+                    fillColor: [255, 255, 255],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold',
+                    lineWidth: 0.1, // Consistent border width
+                    lineColor: [0, 0, 0]
+                },
+                didDrawCell: (data) => {
+                    if (data.column.index === 15 && data.cell.section === 'body') {
+                        const cellRaw = data.cell.raw;
+                        if (cellRaw && cellRaw.signature) {
+                            const base64 = signatureMap.get(cellRaw.signature);
+                            if (base64) {
+                                try {
+                                    doc.addImage(base64, 'PNG', data.cell.x + 2, data.cell.y + 1, data.cell.width - 4, data.cell.height - 2);
+                                } catch (e) {
+                                    console.error('Failed to add signature to PDF:', e);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            doc.save(`Placement_Consolidated_Report_${currentMonth}.pdf`);
+            toast.success('PDF exported successfully!', { id: toastId });
+
+        } catch (error) {
+            console.error('PDF Export failed:', error);
+            toast.error('Failed to export PDF', { id: toastId });
+        }
+    };
+
     // if (loading) return (
     //     <div className="flex items-center justify-center min-h-[400px]">
     //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -804,14 +1013,25 @@ const Reports = () => {
                     <button onClick={fetchData} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 transition-all border border-slate-200 dark:border-slate-700">
                         <TrendingUp className="w-5 h-5" />
                     </button>
-                    {(activeTab === 'willing' || activeTab === 'placed' || activeTab === 'leetcode') && (
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold"
-                        >
-                            <Download className="w-5 h-5" />
-                            {activeTab === 'willing' ? 'Export Willing' : activeTab === 'placed' ? 'Export Placements' : activeTab === 'leetcode' ? (leetcodeView === 'individual' ? 'Export LeetCode Report' : 'Export Consolidated Report') : 'Export Consolidate Report'}
-                        </button>
+                    {(activeTab === 'willing' || activeTab === 'placed' || activeTab === 'leetcode' || activeTab === 'consolidate') && (
+                        <div className="flex gap-3">
+                            {activeTab === 'consolidate' && (
+                                <button 
+                                    onClick={handlePDFExport}
+                                    className="flex items-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/25 font-bold"
+                                >
+                                    <FileText className="w-5 h-5" />
+                                    Export PDF
+                                </button>
+                            )}
+                            <button 
+                                onClick={handleExport}
+                                className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 font-bold"
+                            >
+                                <Download className="w-5 h-5" />
+                                {activeTab === 'willing' ? 'Export Willing' : activeTab === 'placed' ? 'Export Placements' : activeTab === 'leetcode' ? (leetcodeView === 'individual' ? 'Export LeetCode Report' : 'Export Consolidated Report') : 'Export Excel'}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -1172,26 +1392,43 @@ const Reports = () => {
                                             const groups = {};
                                             consolidateData.forEach(row => {
                                                 const baseDept = row.department.replace(/ - IT| - CORE/g, '').trim();
-                                                if (!groups[baseDept]) groups[baseDept] = [];
-                                                groups[baseDept].push(row);
+                                                const campus = row.campus_details || 'N/A';
+                                                const groupKey = `${baseDept}-${campus}`;
+                                                if (!groups[groupKey]) groups[groupKey] = [];
+                                                groups[groupKey].push(row);
                                             });
 
                                             let sNo = 1;
-                                            Object.entries(groups).forEach(([baseDept, rows]) => {
+                                            let totalStr = 0, totalInt = 0, total7L = 0, total6L = 0, total5L = 0, total4L = 0, total3L = 0, total2L = 0, total1L = 0, totalAvg = 0, totalPlaced = 0, totalBal = 0;
+
+                                            Object.entries(groups).forEach(([groupKey, rows]) => {
+                                                totalStr += Number(rows[0].strength || 0); // Only count strength once per group
                                                 rows.forEach((row, idx) => {
                                                     const placed = (Number(row['7l'] || 0) + Number(row['6l'] || 0) + Number(row['5l'] || 0) + Number(row['4l'] || 0) + Number(row['3l'] || 0) + Number(row['2l'] || 0) + Number(row['1l'] || 0));
                                                     const balance = Number(row.interested || 0) - placed;
                                                     const percentage = row.interested > 0 ? ((placed / row.interested) * 100).toFixed(2) : '0.00';
 
+                                                    totalInt += Number(row.interested || 0);
+                                                    total7L += Number(row['7l'] || 0);
+                                                    total6L += Number(row['6l'] || 0);
+                                                    total5L += Number(row['5l'] || 0);
+                                                    total4L += Number(row['4l'] || 0);
+                                                    total3L += Number(row['3l'] || 0);
+                                                    total2L += Number(row['2l'] || 0);
+                                                    total1L += Number(row['1l'] || 0);
+                                                    totalAvg += Number(row.average || 0);
+                                                    totalPlaced += placed;
+                                                    totalBal += balance;
+
                                                     groupedRows.push(
-                                                        <tr key={`${baseDept}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group">
+                                                        <tr key={`${groupKey}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group">
                                                             {idx === 0 && (
                                                                 <td rowSpan={rows.length} className="p-4 text-center font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                                                                     {sNo++}
                                                                 </td>
                                                             )}
                                                             <td className="p-4 font-bold text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 min-w-[150px]">
-                                                                {rows.length === 1 ? baseDept : row.department}
+                                                                {row.department}
                                                             </td>
                                                             {idx === 0 && (
                                                                 <td rowSpan={rows.length} className="p-4 text-center font-bold text-primary-600 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -1227,6 +1464,33 @@ const Reports = () => {
                                                     );
                                                 });
                                             });
+
+                                            // Add Total Row
+                                            if (consolidateData.length > 0) {
+                                                const avgAvg = (totalAvg / consolidateData.length).toFixed(2);
+                                                const totalPercent = totalInt > 0 ? ((totalPlaced / totalInt) * 100).toFixed(2) : '0.00';
+                                                
+                                                groupedRows.push(
+                                                    <tr key="total-row" className="bg-slate-50 dark:bg-slate-800/50 font-black text-slate-900 dark:text-white">
+                                                        <td colSpan={2} className="p-4 text-center border border-slate-100 dark:border-slate-800">Total</td>
+                                                        <td className="p-4 text-center text-blue-600 border border-slate-100 dark:border-slate-800">{totalStr}</td>
+                                                        <td className="p-4 text-center text-purple-600 border border-slate-100 dark:border-slate-800">{totalInt}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total7L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total6L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total5L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total4L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total3L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total2L || ''}</td>
+                                                        <td className="p-4 text-center border border-slate-100 dark:border-slate-800">{total1L || ''}</td>
+                                                        <td className="p-4 text-center text-blue-600 border border-slate-100 dark:border-slate-800">{avgAvg}</td>
+                                                        <td className="p-4 text-center text-emerald-600 border border-slate-100 dark:border-slate-800">{totalPlaced}</td>
+                                                        <td className="p-4 text-center text-rose-600 border border-slate-100 dark:border-slate-800">{totalBal}</td>
+                                                        <td className="p-4 text-center text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">{totalPercent}%</td>
+                                                        <td className="p-4 border border-slate-100 dark:border-slate-800"></td>
+                                                    </tr>
+                                                );
+                                            }
+
                                             return groupedRows;
                                         })()
                                     )}

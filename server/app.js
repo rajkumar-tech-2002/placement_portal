@@ -20,6 +20,7 @@ import driveWillingnessRoutes from './routes/driveWillingness.routes.js';
 import leetcodeDetailsRoutes from './routes/leetcodeDetails.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import placementCountRoutes from './routes/placementCount.routes.js';
+import syncSettingRoutes from './routes/syncSetting.routes.js';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/drive-willingness', driveWillingnessRoutes);
 app.use('/api/leetcode-details', leetcodeDetailsRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/placement-count', placementCountRoutes);
+app.use('/api/sync-settings', syncSettingRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
