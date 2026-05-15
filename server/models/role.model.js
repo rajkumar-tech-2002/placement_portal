@@ -1,9 +1,41 @@
 import pool from '../config/db.config.js';
 
 class Role {
-    static async findAll() {
-        const [roles] = await pool.query('SELECT * FROM role_master ORDER BY role DESC');
+    static async findAll(limit = null, offset = null, search = '', sortBy = 'role', sortOrder = 'ASC') {
+        let sql = 'SELECT * FROM role_master';
+        const params = [];
+        
+        if (search) {
+            sql += ' WHERE role LIKE ?';
+            params.push(`%${search}%`);
+        }
+        
+        const allowedSortColumns = ['id', 'role'];
+        const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'role';
+        const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+        sql += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
+        
+        if (limit !== null && offset !== null) {
+            sql += ' LIMIT ? OFFSET ?';
+            params.push(Number(limit), Number(offset));
+        }
+
+        const [roles] = await pool.query(sql, params);
         return roles;
+    }
+
+    static async countAll(search = '') {
+        let sql = 'SELECT COUNT(*) as total FROM role_master';
+        const params = [];
+
+        if (search) {
+            sql += ' WHERE role LIKE ?';
+            params.push(`%${search}%`);
+        }
+
+        const [rows] = await pool.query(sql, params);
+        return rows[0].total;
     }
 
     static async create(roleName) {
@@ -18,6 +50,12 @@ class Role {
 
     static async delete(id) {
         await pool.query('DELETE FROM role_master WHERE id = ?', [id]);
+        return true;
+    }
+
+    static async bulkDelete(ids) {
+        if (!ids || ids.length === 0) return true;
+        await pool.query('DELETE FROM role_master WHERE id IN (?)', [ids]);
         return true;
     }
 }

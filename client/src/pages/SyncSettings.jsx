@@ -121,31 +121,80 @@ const SyncSettings = () => {
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Configure automated weekly data synchronization for LeetCode profiles.</p>
             </div>
 
-            {/* Status Card */}
-            <div className={`p-6 rounded-[2rem] border transition-all duration-300 flex items-center justify-between ${settings ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/50' : 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/50'}`}>
-                <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${settings ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                        {settings ? <Activity className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white">
-                            {settings ? 'Automated Sync Active' : 'Automated Sync Not Configured'}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {settings 
-                                ? `Currently scheduled every ${settings.sync_day} at ${settings.sync_time.substring(0, 5)}`
-                                : 'Please set a day and time to enable weekly automatic synchronization.'}
-                        </p>
+            {/* Status & History Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Current Status Card */}
+                <div className={`lg:col-span-2 p-8 rounded-[2.5rem] border transition-all duration-500 relative overflow-hidden ${settings?.is_active ? 'bg-emerald-50/30 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-800/50' : 'bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800'}`}>
+                    {settings?.is_active && <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[80px] -mr-16 -mt-16"></div>}
+                    
+                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                            <div className={`p-4 rounded-[1.5rem] shadow-lg ${settings?.is_active ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Activity className={`w-6 h-6 ${settings?.is_active ? 'animate-pulse' : ''}`} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                    {settings?.is_active ? 'Automated Sync Active' : 'Automated Sync Paused'}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                    {settings 
+                                        ? `Scheduled for every ${settings.sync_day} at ${settings.sync_time.substring(0, 5)} IST`
+                                        : 'Waiting for configuration...'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {settings && (
+                            <div className="flex flex-col items-end gap-1">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Next Execution</div>
+                                <div className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                                    <Clock className="w-3.5 h-3.5 text-primary-500" />
+                                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                                        {settings.next_run_at ? new Date(settings.next_run_at).toLocaleString('en-IN', { 
+                                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true 
+                                        }) : 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-                {settings && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 dark:border-emerald-800 shadow-sm">
-                        <div className={`w-2 h-2 rounded-full ${formData.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                            {formData.is_active ? 'Enabled' : 'Disabled'}
-                        </span>
+
+                {/* Last Run Stats */}
+                <div className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col justify-center gap-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Last Sync Status</span>
+                        {settings?.last_run_status && (
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                settings.last_run_status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-600' : 
+                                settings.last_run_status === 'RUNNING' ? 'bg-blue-100 text-blue-600 animate-pulse' : 
+                                'bg-rose-100 text-rose-600'
+                            }`}>
+                                {settings.last_run_status}
+                            </span>
+                        )}
                     </div>
-                )}
+                    
+                    <div className="space-y-1">
+                        <div className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">
+                            {settings?.last_run_status === 'RUNNING' ? (
+                                <span className="text-blue-600">Running...</span>
+                            ) : (
+                                settings?.last_run_start ? new Date(settings.last_run_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'
+                            )}
+                        </div>
+                        <div className="text-xs font-bold text-slate-400">
+                            {settings?.last_run_start ? new Date(settings.last_run_start).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Never synced'}
+                        </div>
+                    </div>
+
+                    {settings?.last_error && (
+                        <div className="mt-2 p-3 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/30 flex items-start gap-2">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold leading-tight line-clamp-2">{settings.last_error}</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Feedback Message */}

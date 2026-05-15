@@ -181,11 +181,12 @@ let syncProgress = {
 export const syncAllDetails = async (req, res) => {
     if (syncProgress.isRunning) {
         if (res) return res.status(400).json({ message: 'Sync already in progress' });
+        console.log('[SYNC] Already in progress, skipping trigger.');
         return;
     }
 
     try {
-        const syncStatus = req.query.syncStatus || null;
+        const syncStatus = req?.query?.syncStatus || null;
         
         // Fetch ALL details that have either a valid username or a profile URL
         const details = await LeetCodeDetail.getAll(null, null, '', 'created_at', 'DESC', [], null, syncStatus);
@@ -200,7 +201,7 @@ export const syncAllDetails = async (req, res) => {
             return;
         }
 
-        // Start background sync
+        // Initialize progress
         syncProgress = {
             isRunning: true,
             total: recordsToSync.length,
@@ -212,8 +213,8 @@ export const syncAllDetails = async (req, res) => {
         
         if (res) res.json({ message: 'Sync started in background', total: recordsToSync.length });
 
-        // Background loop
-        (async () => {
+        // Define the execution logic
+        const runSync = async () => {
             console.log(`[SYNC STARTED] Total records: ${recordsToSync.length}`);
             for (const record of recordsToSync) {
                 try {
@@ -221,9 +222,7 @@ export const syncAllDetails = async (req, res) => {
                     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
                     const isRecentlySynced = record.last_synced_at && new Date(record.last_synced_at) > sixHoursAgo;
                     
-                    // IF it was synced recently AND it already has total_questions, skip it.
-                    // IF it doesn't have total_questions, sync it anyway to backfill data.
-                    if (isRecentlySynced && (record.total_questions > 0)) {
+                    if (isRecentlySynced && (record.total_solved > 0)) {
                         continue;
                     }
 
@@ -238,12 +237,20 @@ export const syncAllDetails = async (req, res) => {
             }
             syncProgress.isRunning = false;
             console.log('[SYNC COMPLETED]');
-        })();
+        };
+
+        // If res is provided, run in background (don't await)
+        if (res) {
+            runSync();
+        } else {
+            // If no res (called from cron), await the process
+            await runSync();
+        }
 
     } catch (error) {
         syncProgress.isRunning = false;
         if (res) res.status(500).json({ message: error.message });
-        else console.error(`[CRON SYNC FAILED] ${error.message}`);
+        else throw error;
     }
 };
 

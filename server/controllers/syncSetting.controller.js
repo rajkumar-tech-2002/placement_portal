@@ -23,22 +23,36 @@ export const getAllSyncSettings = async (req, res) => {
 export const createSyncSetting = async (req, res) => {
     try {
         const { module_name, sync_day, sync_time, is_active } = req.body;
+        const next_run_at = is_active ? calculateNextRun(sync_day, sync_time) : null;
+        
         const [result] = await pool.query(
-            'INSERT INTO sync_settings (module_name, sync_day, sync_time, is_active) VALUES (?, ?, ?, ?)',
-            [module_name, sync_day, sync_time, is_active ?? true]
+            'INSERT INTO sync_settings (module_name, sync_day, sync_time, is_active, next_run_at) VALUES (?, ?, ?, ?, ?)',
+            [module_name, sync_day, sync_time, is_active ?? true, next_run_at]
         );
-        res.status(201).json({ id: result.insertId, message: 'Sync setting created successfully' });
+        
+        initializeLeetCodeSync();
+        
+        res.status(201).json({ id: result.insertId, message: 'Sync setting created successfully', next_run_at });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
+import { calculateNextRun, initializeLeetCodeSync } from '../utils/cronScheduler.js';
+
 export const updateSyncSetting = async (req, res) => {
     try {
         const { moduleName } = req.params;
         const { sync_day, sync_time, is_active } = req.body;
-        await SyncSetting.update(moduleName, { sync_day, sync_time, is_active });
-        res.json({ message: 'Sync setting updated successfully' });
+        
+        const next_run_at = is_active ? calculateNextRun(sync_day, sync_time) : null;
+        
+        await SyncSetting.update(moduleName, { sync_day, sync_time, is_active, next_run_at });
+        
+        // Re-initialize cron to pick up changes immediately
+        initializeLeetCodeSync();
+        
+        res.json({ message: 'Sync setting updated successfully', next_run_at });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
